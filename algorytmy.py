@@ -1,10 +1,11 @@
 import arcpy
 import math
+import heapq
 import matplotlib.pyplot as plt
 import networkx as nx
 import time
-
-roads = r"C:\Studia\Sezon_3\Programowania_aplikacji_geoinformacyjnych\Projekt\Drogi3.shp"
+roads = r"BDOT\dodatkowe\duzo_drog.shp"
+# roads = r"BDOT\kujawsko_pomorskie_m_Torun\fragment_roads.shp"
 
 vertices = {}
 vertex_coords = {}
@@ -12,23 +13,32 @@ vertex_edges = {}
 edges = []
 vertex_counter = 0
 edge_counter = 0
-tolerance = 1
+tolerance = 0.5
 
 
-def round_point(x, y, tolerance):
-    return (round(x / tolerance) * tolerance, round(y / tolerance) * tolerance)
+def find_nearby_vertex(x, y, tolerance):
+    candidates = []
+    for fx in [math.floor, math.ceil]:
+        for fy in [math.floor, math.ceil]:
+            key = (fx(x / tolerance) * tolerance, fy(y / tolerance) * tolerance)
+            candidates.append(key)
+
+    return candidates
 
 
 def get_or_create_vertex(x, y):
     global vertex_counter
-    key = round_point(x, y, tolerance)
-    if key not in vertices:
-        vertex_id = vertex_counter
-        vertices[key] = vertex_id
-        vertex_coords[vertex_id] = key
-        vertex_edges[vertex_id] = []
-        vertex_counter += 1
-    return vertices[key]
+    candidates = find_nearby_vertex(x, y, tolerance)
+    for key in candidates:
+        if key in vertices:
+            return vertices[key]
+
+    vertex_id = vertex_counter
+    vertices[candidates[0]] = vertex_id
+    vertex_coords[vertex_id] = candidates[0]
+    vertex_edges[vertex_id] = []
+    vertex_counter += 1
+    return vertices[candidates[0]]
 
 
 with arcpy.da.SearchCursor(roads, ["OID@", "SHAPE@"]) as cursor:
@@ -69,14 +79,20 @@ with arcpy.da.SearchCursor(roads, ["OID@", "SHAPE@"]) as cursor:
 
 def dijkstra(start, end, vertex_edges, edges):
     S = set()
+    # Q = [(0, start)]
     Q = {start}
     d = {v: math.inf for v in vertex_edges.keys()}
     p = {v: None for v in vertex_edges.keys()}
     d[start] = 0
 
     while Q:
+        #_, v = heapq.heappop(Q)
         v = min(Q, key=lambda x: d[x])
         Q.remove(v)
+
+        if v in S:
+            continue
+        S.add(v)
 
         if v == end:
             break
@@ -97,16 +113,18 @@ def dijkstra(start, end, vertex_edges, edges):
             if new_d < d[u]:
                 d[u] = new_d
                 p[u] = v
+                #heapq.heappush(Q, (d[u], u))
                 Q.add(u)
-
-        S.add(v)
 
     path = []
     v = end
     while v is not None:
-        path.insert(0, v)
+        path.append(v)
         v = p[v]
+    path.reverse()
 
+    if d[end] == math.inf:
+        return None, math.inf
     return path, d[end]
 
 
@@ -115,51 +133,62 @@ def heurystyka(point1_id, point2_id, vertex_coords):
     x2, y2 = vertex_coords[point2_id]
 
     return math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
+    # return 0
 
 
 def aGwiazdka(start, end, vertex_edges, edges, vertex_coords):
-    g = {v: math.inf for v in vertex_edges.keys()}
-    f = {v: math.inf for v in vertex_edges.keys()}
-    p = {v: None for v in vertex_edges.keys()}
-
-    g[start] = 0
-    f[start] = heurystyka(start, end, vertex_coords)
-
+    S = set()
+    #Q = [(0 + heurystyka(start, end, vertex_coords), start)] 
     Q = {start}
+    h = {}
+    h[start] = heurystyka(start, end, vertex_coords)
+    d = {v: math.inf for v in vertex_edges.keys()}
+    p = {v: None for v in vertex_edges.keys()}
+    d[start] = 0
 
     while Q:
-        v = min(Q, key=lambda x: f[x])
+        #_, v = heapq.heappop(Q) 
+        v = min(Q, key=lambda x: d[x] + h[x])
         Q.remove(v)
+
+        if v in S:
+            continue
+        S.add(v)
 
         if v == end:
             break
 
         for edge_id in vertex_edges[v]:
             e = edges[edge_id]
-            u = e["id_to"]
+            if e["id_from"] == v:
+                u = e["id_to"]
+            else:
+                u = e["id_from"]
 
             length = e["length"]
 
-            tentative_g = g[v] + length
+            if u in S:
+                continue
 
-            if tentative_g < g[u]:
+            new_d = d[v] + length
+            if new_d < d[u]:
+                d[u] = new_d
                 p[u] = v
-                g[u] = tentative_g
-                h = heurystyka(u, end, vertex_coords)
-                f[u] = g[u] + h
-
-                if u not in Q:
-                    Q.add(u)
+                # f_u = new_d + heurystyka(u, end, vertex_coords)
+                # heapq.heappush(Q, (f_u, u))
+                h[u] = heurystyka(u, end, vertex_coords)
+                Q.add(u)
 
     path = []
     v = end
     while v is not None:
-        path.insert(0, v)
-        v = p.get(v)
+        path.append(v)
+        v = p[v]
+    path.reverse()
 
-    final_distance = g[end] if g[end] != math.inf else None
-
-    return path, final_distance
+    if d[end] == math.inf:
+        return None, math.inf
+    return path, d[end]
 
 def save_to_graph(plik_wyjsciowy, vertex_coords, vertex_edges, edges):
 
@@ -187,15 +216,17 @@ def save_to_graph(plik_wyjsciowy, vertex_coords, vertex_edges, edges):
     # DO SPRAWDZENIA SOBIE ---------------------------------------
 
 
-# print(f"Liczba wierzchołków: {len(vertices)}")
-# print(f"Liczba krawędzi: {len(edges)}")
+print(f"Liczba wierzchołków: {len(vertices)}")
+print(f"Liczba krawędzi: {len(edges)}")
 # print("\n Wierzchołki ")
 # for id_w, (x, y) in vertex_coords.items():
-# out_edges = vertex_edges[id_w]
-# print(f"ID: {id_w}, X: {x}, Y: {y}, edge_out: {out_edges}")
+#     out_edges = vertex_edges[id_w]
+#     print(f"ID: {id_w}, X: {x}, Y: {y}, edge_out: {out_edges}")
 
-start = 8
-end = 98
+start = 250
+end = 516
+
+#-------------------------------------------------------------------------------------------------------------
 
 t_start_dijkstra = time.time()
 path, distance = dijkstra(start, end, vertex_edges, edges)
@@ -207,8 +238,7 @@ print("sciezka:", path)
 print("Dlugosc trasy:", distance, "metrow")
 print(f"Czas działania algorytmu: {dijk_time:.15f} sekundy\n\n")
 
-# -------------------------------------------------------------------------------------------------------------
-
+#-------------------------------------------------------------------------------------------------------------
 
 t_start_gwiazdka = time.time()
 path, distance = aGwiazdka(start, end, vertex_edges, edges, vertex_coords)
@@ -220,6 +250,11 @@ print("sciezka:", path)
 print("Dlugosc trasy:", distance, "metrow")
 print(f"Czas działania algorytmu: {gw_time:.15f} sekundy\n\n")
 
+#-------------------------------------------------------------------------------------------------------------
+
+
+# Tymczasowy rysunek
+
 G = nx.Graph()
 for e in edges:
     f, t, l = e["id_from"], e["id_to"], e["length"]
@@ -229,6 +264,5 @@ pos = {vid: (x, y) for vid, (x, y) in vertex_coords.items()}
 
 plt.figure(figsize=(10, 8))
 nx.draw(G, pos, node_size=40, node_color="red", edge_color="gray", with_labels=True, font_size=8)
-plt.title("graf drog BDOT")
-plt.show()
 
+plt.show()
