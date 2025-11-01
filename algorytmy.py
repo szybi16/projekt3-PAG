@@ -4,8 +4,17 @@ import heapq
 import matplotlib.pyplot as plt
 import networkx as nx
 import time
-roads = r"BDOT\dodatkowe\duzo_drog.shp"
+#roads = r"BDOT\dodatkowe\duzo_drog.shp"
 # roads = r"BDOT\kujawsko_pomorskie_m_Torun\fragment_roads.shp"
+
+duzeDane = "\Dane\Drogi_Bydgoszcz.shp"
+maleDane = "\Dane\Drogi_Bydgoszcz_Male.shp"
+testKierunek = "\Dane\maleKierunek.shp"
+m = r""
+j = r""
+f = r"C:\Studia\Sezon_3\Programowania_aplikacji_geoinformacyjnych\Projekt"
+
+roads = f + maleDane
 
 vertices = {}
 vertex_coords = {}
@@ -266,3 +275,4 @@ plt.figure(figsize=(10, 8))
 nx.draw(G, pos, node_size=40, node_color="red", edge_color="gray", with_labels=True, font_size=8)
 
 plt.show()
+
