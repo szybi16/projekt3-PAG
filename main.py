@@ -54,7 +54,7 @@ print(f"Liczba krawędzi: {len(graph.edges)}")
 # print(graph)
 
 NX_visualisation(graph)
-# Web_visualisation(graph)
+# Web_visualisation(graph, path)
 
 ########################
 
