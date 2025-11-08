@@ -26,7 +26,7 @@ filip = r"C:/Studia/Sezon_3/Programowania_aplikacji_geoinformacyjnych/Projekt/Da
 
 # Stałe do wczytywania warstwy
 layer = maleDane    # tu wybrany zestaw danych
-user = maciek_stud       # tu wasz adres danych
+user = filip      # tu wasz adres danych
 
 shp = user + layer + ".shp" # tak powstaje adres pliku .shp, to nie stała, ale zostawiam tutaj, bo jest używane w tym samym miejscu co layer
 
@@ -52,9 +52,6 @@ graph = create_graph(shp, layer, tolerance)
 print(f"Liczba wierzchołków: {len(graph.nodes)}")
 print(f"Liczba krawędzi: {len(graph.edges)}")
 # print(graph)
-
-NX_visualisation(graph)
-# Web_visualisation(graph, path)
 
 ########################
 
@@ -91,3 +88,9 @@ print(f"Czas działania algorytmu: {gw_time:.15f} sekundy\n")
 ####### Zapis ##########
 
 save_to_graph("grafek.txt", graph)
+
+###### Wyświetlania ####
+
+
+NX_visualisation(graph)
+# Web_visualisation(graph, path)

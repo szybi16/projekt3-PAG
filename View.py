@@ -7,6 +7,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import webbrowser
 import folium
+import numpy as np
 from pyproj import Transformer
 
 from Graph import *
@@ -29,6 +30,41 @@ def NX_visualisation(g: Graph):
     nx.draw(G, pos, node_size=40, node_color="red", edge_color="gray", with_labels=True, font_size=8)
     plt.axis('equal')
     plt.show()
+
+#Liczenie odległości pomiędzy wierzchołkami
+def distance_to_point(start_node, end_node):
+    x_start, y_start = start_node[0], start_node[1]
+    x_end, y_end = end_node[0], end_node[1]
+    distance = np.sqrt((x_end - x_start) ** 2 + (y_end - y_start) ** 2)
+    return distance
+
+#Obliczanie najbliższego wierzchołka do punktu
+def calculate_nearest_point(x_coords, y_coords, g: Graph):
+    #Zmiana współrzędnych na układ 2180
+    transformer_to_meters = Transformer.from_crs("EPSG:4326", "EPSG:2180", always_xy=True)
+    x_coords, y_coords = transformer_to_meters.transform(x_coords, y_coords)
+    #Ustalenei odległości bounding boxa
+    radius = 200
+    nearest_node_id = None
+    min_x = x_coords - radius
+    max_x = x_coords + radius
+    min_y = y_coords - radius
+    max_y = y_coords + radius
+    #Początkowa najkrótsza odległość - nieskończoność
+    min_distance = float("inf")
+    #iterowanie przez punkty
+    for node_id, node in g.nodes.items():
+        x, y = node.x, node.y
+        #Sprawdzanie czy punkt znajduje się w bounding boxie
+        if min_x <= x <= max_x and min_y <= y <= max_y:
+            #obliczanie odległości dla punktu
+            current_distance = distance_to_point([x_coords, y_coords], [x, y])
+            #Jeśli odległość jest mniejsza niż dla wcześniejszych punktów to nadpisujemy
+            if current_distance < min_distance:
+                min_distance = current_distance
+                nearest_node_id = node_id
+
+    return nearest_node_id, min_distance
 
 # Wyświetlanie w html 
 def Web_visualisation(g: Graph, path):
