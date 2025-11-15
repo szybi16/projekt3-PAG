@@ -26,7 +26,7 @@ filip = r"C:/Studia/Sezon_3/Programowania_aplikacji_geoinformacyjnych/Projekt/Da
 
 # Stałe do wczytywania warstwy
 layer = duzeDane    # tu wybrany zestaw danych
-user = julka     # tu wasz adres danych
+user = filip     # tu wasz adres danych
 
 shp = user + layer + ".shp" # tak powstaje adres pliku .shp, to nie stała, ale zostawiam tutaj, bo jest używane w tym samym miejscu co layer
 

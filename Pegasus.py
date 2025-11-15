@@ -55,5 +55,5 @@ def calculate_route():
     #Zwracamy naszą drogę i punkty początek, koniec jako plik JSONowy
     return flask.jsonify({
         'route': route_coords,
-        'start_marker': route_coords[0],
-        'end_marker': route_coords[-1]})
+        'start_point': route_coords[0],
+        'end_point': route_coords[-1]})

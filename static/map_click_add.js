@@ -4,26 +4,42 @@ document.addEventListener('DOMContentLoaded', (event) =>{
     var map = Object.values(window).find(obj => obj instanceof L.Map);
 
     if (map) {
-        console.log("Mamy użytkownika, pozyskujemy ich dane")
+        console.log("Mapka otwarta")
 
         var points = [];
-        var tempMarkers = [];
         var currentRoute = null;
+        var startLine = null;
+        var endLine = null;
         var startMarker = null;
         var endMarker = null;
 
-        //Obsługa kliknięcia (e zawiera informacje o współrzędnych zatem
+        //Obsługa kliknięcia
         map.on('click', function(e) {
             //Utworzenie punktu na podstawie funkcji Leafletowych
             var latlon = [e.latlng.lat, e.latlng.lng];
             points.push(latlon);
-            //Utworzenie markera w celu pokazania gdzie klikneliśmy
-            var marker = L.marker(latlon).addTo(map);
-            tempMarkers.push(marker);
 
-            console.log("Pumkcik: ", latlon);
+            //utworzenie ikony markera dla początka i końca drogi
+            var startIcon = L.AwesomeMarkers.icon({icon: 'flag', prefix: 'fa', markerColor: 'blue'});
+            var endIcon = L.AwesomeMarkers.icon({icon: 'flag', prefix: 'fa', markerColor: 'black'});
+
+            //Utworzenie markera startu
+            if (points.length === 1){
+                //Usunięcie pozostałości (wcześniejszych tras)
+                if (startMarker) {map.removeLayer(startMarker);}
+                if (endMarker) {map.removeLayer(endMarker);}
+                if (currentRoute) {map.removeLayer(currentRoute);}
+                if (startLine) {map.removeLayer(startLine);}
+                if (endLine) {map.removeLayer(endLine);}
+                //Dodanie markera początkowego
+                startMarker = L.marker(latlon, {icon: startIcon}).addTo(map);}
+
+            console.log("Punkcik: ", latlon);
             if (points.length === 2) {
                 console.log("2 punkty")
+                //Utworzenie markera końca
+                endMarker = L.marker(latlon, {icon: endIcon}).addTo(map);
+
                 //Gdy mamy 2 punkty wysyłamy dane do funkcji liczącej trasę
                 fetch('/calculate', {
                     method: 'POST', //typ POST - wysyłanie danych
@@ -37,39 +53,26 @@ document.addEventListener('DOMContentLoaded', (event) =>{
                     .then(response => response.json()) //Gdy odbierze odpowiedz konwertuje na typ JSON
                     .then(data => { //Obsługa odebranych danych
                         console.log("Trasa:", data.route);
-                        //Usunięcie pozostałości (wcześniejszych tras)
-                        if (currentRoute) {
-                            map.removeLayer(currentRoute);}
-                        if (startMarker) {
-                            map.removeLayer(startMarker);}
-                        if (endMarker) {
-                            map.removeLayer(endMarker);}
+
                         // Dodanie drogi na mapie
                         currentRoute = L.polyline(data.route, {color: 'red'}).addTo(map);
-                        //utworzenie ikony markera dla początka i końca drogi
-                        var startIcon = L.AwesomeMarkers.icon({
-                        icon: 'flag',
-                        prefix: 'fa',
-                        markerColor: 'black'});
 
-                        var endIcon = L.AwesomeMarkers.icon({
-                        icon: 'flag',
-                        prefix: 'fa',
-                        markerColor: 'blue'});
-                        //Dodanie markerów na mapę
-                        startMarker = L.marker(data.start_marker, {icon: startIcon}).addTo(map);
-                        endMarker = L.marker(data.end_marker, {icon: endIcon}).addTo(map);
+                        var startToStart = [points[0],data.start_point];
+                        var endToEnd = [data.end_point, points[1]];
+
+                        var polylineOptions = {
+                            color: 'grey',
+                            dashArray: '10, 10'};
+                        //Linie pomiędzy markerem a wierzchołkiem
+                        startLine = L.polyline(startToStart, polylineOptions).addTo(map);
+                        endLine = L.polyline(endToEnd, polylineOptions).addTo(map);
                         //Czyszczenie
                         points = [];
-                        tempMarkers.forEach(m => map.removeLayer(m));
-                        tempMarkers = [];
                     })
                     .catch(error => {
                         console.error('Błąd:', error);
                         //Czyszczenie w przypadku błędu
                         points = [];
-                        tempMarkers.forEach(m => map.removeLayer(m));
-                        tempMarkers = [];
                     });
             }
         });

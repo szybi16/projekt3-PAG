@@ -92,7 +92,7 @@ def start_location(g: Graph):
 def web_visualisation(g: Graph, path):
     place_coords_latlon, vertex_coords_4326 = start_location(g)
     #Tworzenie mapy
-    m = folium.Map(location=place_coords_latlon, zoom_start=15) # Zoom trzeba zautomatyzować TODO
+    m = folium.Map(location=place_coords_latlon, zoom_start=15)
     #Punty dla początka i końca w celu wyświetlenia markerów
     start_id = path[0].id
     end_id = path[-1].id
