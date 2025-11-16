@@ -149,3 +149,8 @@ document.addEventListener('DOMContentLoaded', (event) =>{
         displayTemporaryMessage("Mapa nie chce się załadować.", 60000)
     }
 });
+
+// Wyłapywanie zamknięcia okna z mapą i nadanie komunikatu
+window.addEventListener("beforeunload", function() {
+    navigator.sendBeacon("/shutdown"); 
+});

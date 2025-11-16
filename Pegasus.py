@@ -6,6 +6,7 @@ Tzw. Mózg wszystkiego
 """
 import flask
 import folium
+import os
 from flask import Flask
 from View import *
 from algorytmy import *
@@ -57,3 +58,8 @@ def calculate_route():
         'route': route_coords,
         'start_point': route_coords[0],
         'end_point': route_coords[-1]})
+
+# Wyjście z procesu pythona --> wyłączenie serwera
+@app.route("/shutdown", methods=["POST"])
+def shutdown():
+    os._exit(0)
