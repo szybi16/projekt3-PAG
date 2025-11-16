@@ -36,6 +36,7 @@ def calculate_route():
     data = flask.request.json
     point1 = data['point1'] # [lat, lon]
     point2 = data['point2'] # [lat, lon]
+    route_type = data['route_type']
 
     graph = flask.current_app.config['GRAPH']
     #Obliczanie najbliższego wierzchołka względem naszego klikniętego punktu
@@ -45,7 +46,7 @@ def calculate_route():
     start = graph.nodes[node_start]
     end = graph.nodes[node_end]
 
-    path, cost, path_edges = aGwiazdka(start, end, graph)
+    path, cost, path_edges = aGwiazdka(start, end, graph, route_type)
 
     # path_edges jest listą krawędzi grafu, więc musimy tylko poskładać z tego geometrię :))
     # Tworzymy z tego listę ponieważ tylko tak Leaflet tak to potrafi obsłużyć :/ It is how it is

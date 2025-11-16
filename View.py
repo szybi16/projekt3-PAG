@@ -44,7 +44,7 @@ def calculate_nearest_point(x_coords, y_coords, g: Graph):
     transformer_to_meters = Transformer.from_crs("EPSG:4326", "EPSG:2180", always_xy=True)
     x_coords, y_coords = transformer_to_meters.transform(x_coords, y_coords)
     #Ustalenei odległości bounding boxa
-    radius = 100
+    radius = 200
     nearest_node_id = None
     min_x = x_coords - radius
     max_x = x_coords + radius

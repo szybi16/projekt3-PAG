@@ -50,7 +50,7 @@ def dijkstra(start: Node, end: Node):
         return None, math.inf
     return path, d[end]
 
-def heurystyka(node1: Node, node2: Node, graph):
+def heurystyka(node1: Node, node2: Node, graph, route_type):
 
     dx = node2.x - node1.x
     dy = node2.y - node1.y
@@ -58,16 +58,19 @@ def heurystyka(node1: Node, node2: Node, graph):
 
     max_speed_kmh = getattr(graph, "max_speed_kmh", 120)
     v_max = max_speed_kmh/ 3.6
-    return distance_m / v_max
+    if route_type == "fastest":
+        return distance_m / v_max
+    elif route_type == "shortest":
+        return distance_m
 
-def aGwiazdka(start: Node, end: Node, graph):
+def aGwiazdka(start: Node, end: Node, graph, route_type):
     S = set()                           # odwiedzone
     Q = [(0, start)]                    # kolejka priorytetowa
     h = {}                              # zbiór heurystyk
     d = {}                              # zbiór odległości
     p = {}                              # zbiór poprzedników
     p_edge = {}                         # zbiór poprzednich krawędzi
-    h[start] = heurystyka(start, end, graph)
+    h[start] = heurystyka(start, end, graph, route_type)
     d[start] = 0
     p[start] = None
     p_edge[start] = None
@@ -82,16 +85,16 @@ def aGwiazdka(start: Node, end: Node, graph):
             break
 
         for e, u in v.edges:            # sąsiad u, po drugiej stronie krawędzi e
-            time_cost = e.cost
+            route_cost = e.cost
             if u in S:                  # zabezpieczenie przed wejściem na odwiedzony wierzchołek
                 continue
 
-            new_d = d[v] + time_cost
+            new_d = d[v] + route_cost
             if not u in d or new_d < d[u]:
                 d[u] = new_d
                 p[u] = v
                 p_edge[u] = e
-                f_u = new_d + heurystyka(u, end, graph)
+                f_u = new_d + heurystyka(u, end, graph, route_type)
                 heapq.heappush(Q, (f_u, u))
 
     # Rekonstrukcja ścieżki
