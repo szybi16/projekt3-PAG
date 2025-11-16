@@ -10,6 +10,7 @@ import folium
 import numpy as np
 from pyproj import Transformer
 from Graph import *
+from math import hypot
 
 # Rysunek z NX
 def nx_visualisation(g: Graph):
@@ -144,3 +145,34 @@ def web_visualisation(g: Graph, path):
     #Zapis i otwarcie w przeglądarce
     m.save("mapka.html")
     webbrowser.open_new_tab("mapka.html")
+
+def rebuild_route(start, path_edges):
+    transformer = Transformer.from_crs("EPSG:2180", "EPSG:4326", always_xy=True)
+
+    full_route = []
+    
+    # Potrzebujemy robić kontrolę kierunków geometrii, więc będziemy zapisywać współrzędne końca poprzedniego fragmentu.
+    prev_x = start.x
+    prev_y = start.y
+
+    #Przechodzenie przez każdą ścieżkę w celu pozyskania współrzędnych punktów i zamiany ich na układ Leafletowy
+    for edge in path_edges:
+        points = edge.true_geom 
+
+        # Kontrola kierunku geometrii i ew. odwracanie
+        first = points[0]
+        last = points[-1]
+        dist_first = hypot(first[0] - prev_x, first[1] - prev_y)
+        dist_last = hypot(last[0] - prev_x, last[1] - prev_y)
+        if dist_last < dist_first:
+            points = list(reversed(points))
+
+        # Dołączamy współrzędne do całej ścieżki
+        for x, y in points:
+            lon, lat = transformer.transform(x, y)
+            
+            full_route.append([lat, lon])
+
+        prev_x, prev_y = points[-1]
+
+    return full_route

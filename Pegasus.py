@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Plik zawiera obsługę serverową w stylu aplikacji z biblioteki flask
 Nasłuchujemy użytkownika hehe (mimo to że to my)
@@ -27,6 +28,8 @@ def index():
     m.get_root().html.add_child(folium.Element(script_tag))
     return m._repr_html_()
 
+
+
 #Funkcja służąca do obliczania trasy (Akceptuje tylko POST, czyli wysyłanie danych)
 @app.route('/calculate',methods=['POST'])
 def calculate_route():
@@ -42,15 +45,11 @@ def calculate_route():
     start = graph.nodes[node_start]
     end = graph.nodes[node_end]
 
-    path, cost = aGwiazdka(start, end, graph)
-    transformer_to_latlon = Transformer.from_crs("EPSG:2180", "EPSG:4326", always_xy=True)
+    path, cost, path_edges = aGwiazdka(start, end, graph)
 
-    route_coords = []
-    #Przechodzenie przez każdy węzeł w celu pozyskania jego współrzędnych i zamiany ich na układ Leafletowy
-    #Robimy to jako lista ponieważ tylko tak Leaflet tak to potrafi obsłużyć :/ It is how it is
-    for node in path:
-        lon, lat = transformer_to_latlon.transform(node.x, node.y)
-        route_coords.append([lat, lon])
+    # path_edges jest listą krawędzi grafu, więc musimy tylko poskładać z tego geometrię :))
+    # Tworzymy z tego listę ponieważ tylko tak Leaflet tak to potrafi obsłużyć :/ It is how it is
+    route_coords = rebuild_route(start, path_edges)
 
     #Zwracamy naszą drogę i punkty początek, koniec jako plik JSONowy
     return flask.jsonify({

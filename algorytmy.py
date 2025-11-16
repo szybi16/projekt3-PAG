@@ -66,10 +66,11 @@ def aGwiazdka(start: Node, end: Node, graph):
     h = {}                              # zbiór heurystyk
     d = {}                              # zbiór odległości
     p = {}                              # zbiór poprzedników
+    p_edge = {}                         # zbiór poprzednich krawędzi
     h[start] = heurystyka(start, end, graph)
     d[start] = 0
     p[start] = None
-
+    p_edge[start] = None
     while Q:
         _, v = heapq.heappop(Q)         # obsługa kolejki, v - wierzchołek 
 
@@ -89,20 +90,25 @@ def aGwiazdka(start: Node, end: Node, graph):
             if not u in d or new_d < d[u]:
                 d[u] = new_d
                 p[u] = v
+                p_edge[u] = e
                 f_u = new_d + heurystyka(u, end, graph)
                 heapq.heappush(Q, (f_u, u))
 
     # Rekonstrukcja ścieżki
-    path = []                           
+    path = []
+    path_edges = []              
     v = end
     while v is not None:
         path.append(v)
+        if(p_edge[v]):
+            path_edges.append(p_edge[v])
         v = p[v]
     path.reverse()
+    path_edges.reverse()
 
     if not end in d:                    # obsługa braku ścieżki  
-        return None, math.inf
-    return path, d[end]
+        return None, math.inf, None
+    return path, d[end], path_edges
 
 
 

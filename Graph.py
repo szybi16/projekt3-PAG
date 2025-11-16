@@ -20,11 +20,12 @@ class Node:
         return f"N({self.id},({self.x},{self.y}),[{eids}])"
         
 class Edge:
-    def __init__(self, edge_id, cost, start, end):
-        self.id = edge_id   # id
-        self.cost = cost    # waga krawędzi   
-        self.start = start  # z wierzchołka
-        self.end = end      # do wierzchołka
+    def __init__(self, edge_id, cost, start, end, true_geom):
+        self.id = edge_id           # id
+        self.cost = cost            # waga krawędzi   
+        self.start = start          # z wierzchołka
+        self.end = end              # do wierzchołka
+        self.true_geom = true_geom  # lista współrzędnych (x, y)
         
     def __repr__(self):
         sid = self.start.id if self.start is not None else "None"
@@ -75,13 +76,13 @@ class GraphCreator:
         self.index[p] = n                      # dodawanie wierzchołka do index
         return self.index[p]
         
-    def newEdge(self, id, length, p1, p2, directed = False):
+    def newEdge(self, id, length, p1, p2, geom, directed = False):
         # tworzenie wierzchołków
         n1 = self.newNode(p1)
         n2 = self.newNode(p2)
 
         # tworzenie krawędzi
-        e = Edge(id, length, n1, n2)          
+        e = Edge(id, length, n1, n2, geom)          
         self.graph.edges[id] = e
 
         # łączenie krawędzi i wierzchołków
@@ -100,6 +101,8 @@ def create_graph(workspace, layer, tolerance = 0.5):
         p1 = (row.Shape.firstPoint.X, row.Shape.firstPoint.Y)
         p2 = (row.Shape.lastPoint.X, row.Shape.lastPoint.Y)
 
+        points = [(p.X, p.Y) for p in row.Shape.getPart(0)]
+
         kierunek = row.getValue("KIERUNEK")
         predkosc = row.getValue("PREDKOSC")
         if not predkosc or predkosc <= 0: #domyslna predkosc, gdyby ewentualnie brak danych
@@ -113,11 +116,11 @@ def create_graph(workspace, layer, tolerance = 0.5):
 
 
         if kierunek == 0:
-            gc.newEdge(row.FID, length, p1, p2, directed = False)
+            gc.newEdge(row.FID, length, p1, p2, directed = False, geom=points)
         elif kierunek == 1:
-            gc.newEdge(row.FID, length, p1, p2, directed = True)
+            gc.newEdge(row.FID, length, p1, p2, directed = True, geom=points)
         elif kierunek == 2:
-            gc.newEdge(row.FID, length, p2, p1, directed = True)
+            gc.newEdge(row.FID, length, p2, p1, directed = True, geom=points)
 
 
     gc.graph.max_speed_kmh = max_speed if max_speed > 0 else 130.0
