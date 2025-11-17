@@ -11,48 +11,74 @@
         ~ Maciek <3 
 '''
 
-#### Stałe w kodzie ####
-
-# Zestawy danych
-duzeDane = "Drogi_Bydgoszcz"
-maleDane = "Drogi_Bydgoszcz_Male"
-testKierunek = "maleKierunek"
-
-# Personalne adresy plików (trzeba to jakoś lepiej rozwiązać)
-maciek_home = r"C:/Users/Szybi/Documents/Studia/PAG/projekt1-PAG/Dane/"
-maciek_stud = r"C:/Users/Maciek/Documents/Studia/PAG/projekt1-PAG/Dane/"
-julka = r"C:/GI sem 5/PAG_GITHUB_REZPOYTORIUM/projekt1-PAG/Dane/"
-filip = r"C:/Studia/Sezon_3/Programowania_aplikacji_geoinformacyjnych/Projekt/Dane/"
-
-# Stałe do wczytywania warstwy
-layer = duzeDane    # tu wybrany zestaw danych
-user = filip     # tu wasz adres danych
-
-shp = user + layer + ".shp" # tak powstaje adres pliku .shp, to nie stała, ale zostawiam tutaj, bo jest używane w tym samym miejscu co layer
-
-# Tolerancja dociągania do wierzchołków
-tolerance = 0.5
-
-########################
-
 import time
 import threading
 import webbrowser
+import argparse
+import os
 from Graph import *
 from View import *
 from algorytmy import *
 from Pegasus import *
 
-#Zmienne globalne dla serwera, jak ktoś chce inny port to można sobie to zmienić ale raczej na 5000 nic innego z niego nie korzysta
-PORT = 5000
-HOST = "localhost"
-URL = f"http://{HOST}:{PORT}"
+# Zestawy danych
+maleDane = "Drogi_Bydgoszcz_Male"
+testKierunek = "maleKierunek"
+duzeDane = "Drogi_Bydgoszcz"
 
-###### Kod główny ######
+# Domyślna warstwa
+default_layer = duzeDane
 
-graph = create_graph(shp, layer, tolerance)
+def get_args():
+    parser = argparse.ArgumentParser(
+        description="Opcjonalna konfiguracja argumentów"
+    )
 
-########################
+    parser.add_argument(
+        "--layer",
+        type=str,
+        default=default_layer,
+        help=f"Nazwa warstwy danych (domyślnie: {default_layer})"
+    )
+
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=5000,
+        help="Port localhost (domyślnie: 5000)"
+    )
+
+    parser.add_argument(
+        "--user-path",
+        type=str,
+        default=None,
+        help="Ścieżka do danych (domyślnie: folder \"Dane\" w katalogu programu)"
+    )
+
+    parser.add_argument(
+        "--tolerance",
+        type=float,
+        default=0.5,
+        help=f"Tolerancja eliminacji niespójności (domyślnie: 0.5)"
+    )
+
+    return parser.parse_args()
+
+def build_config():
+    args = get_args()
+    user_path = args.user_path or os.path.join(os.path.dirname(os.path.abspath(__file__)), "Dane") 
+    HOST = "localhost" 
+    shp = os.path.join(user_path, f"{args.layer}.shp")
+    url = f"http://{HOST}:{args.port}"
+
+    return {
+        "layer": args.layer,
+        "host": HOST,
+        "port": args.port,
+        "shp": shp,
+        "url": url,
+        "tolerance": args.tolerance 
+    }
 
 #### Kod tymczasowy ####
 
@@ -92,23 +118,38 @@ print("sciezka:", [n.id for n in path])
 print("Dlugosc trasy:", distance, "metrow")
 print(f"Czas działania algorytmu: {gw_time:.15f} sekundy\n")
 """
-####### Zapis ##########
 
-save_to_graph("grafek.txt", graph)
-
-###### Wyświetlania ####
+###### Kod główny ######
 
 #Otwieramy przeglądarę i dajemy jej czas aby server zdążył się odpalić
-def open_browser():
+def open_browser(URL: str):
     time.sleep(1)
     webbrowser.open(URL)
 
 if __name__ == '__main__':
+    # konfiguracja
+    config = build_config()
+    # tworzenie grafu
+    layer = config["layer"]
+    HOST = config["host"]
+    PORT = config["port"]
+    shp = config["shp"]
+    URL = config["url"]
+    tolerance = config["tolerance"]
+
+    # tworzenie grafu
+    graph = create_graph(shp, layer, tolerance)
+    
+    # Zapis
+    # save_to_graph("grafek.txt", graph)
+    
     #utworzenie wątku, który pozwala na to, że app i open_browser działa w tym samym momencie inaczej albo by się otwierało
     #przed włączeniem serwera albo nie uruchomiło by się wcale bo zaczęło by działać app, dopóki się go nie zatrzyma
-    threading.Thread(target=open_browser).start()
+    threading.Thread(target=open_browser, args=(URL,)).start()
+    
     #Dodajemy nasz graf dla aplikacji Flaskowegj
     app.config['GRAPH'] = graph
+    
     #Uruchomienie serwera, debug=False pozwala na brak restartu gdy sobie 'grzebiemy' w kodzie
     app.run(host=HOST, port=PORT, debug=False)
 
