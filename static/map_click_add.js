@@ -70,6 +70,7 @@ document.addEventListener('DOMContentLoaded', (event) =>{
 
         var points = [];
         var currentRoute = null;
+        var alternatywqa = null;
         var startLine = null;
         var endLine = null;
         var startMarker = null;
@@ -91,6 +92,7 @@ document.addEventListener('DOMContentLoaded', (event) =>{
                 if (startMarker) {map.removeLayer(startMarker);}
                 if (endMarker) {map.removeLayer(endMarker);}
                 if (currentRoute) {map.removeLayer(currentRoute);}
+                if (alternatywqa) {map.removeLayer(alternatywqa);}
                 if (startLine) {map.removeLayer(startLine);}
                 if (endLine) {map.removeLayer(endLine);}
                 //Dodanie markera początkowego
@@ -122,6 +124,7 @@ document.addEventListener('DOMContentLoaded', (event) =>{
                         console.log("Trasa:", data.route);
 
                         // Dodanie drogi na mapie
+                        alternatywqa = L.polyline(data.route2, {color: 'gray'}).addTo(map);
                         currentRoute = L.polyline(data.route, {color: 'red'}).addTo(map);
 
                         var startToStart = [points[0],data.start_point];

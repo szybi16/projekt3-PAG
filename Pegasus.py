@@ -44,23 +44,28 @@ def calculate_route():
     start = graph.nodes[node_start]
     end = graph.nodes[node_end]
 
-    path, cost,  = aGwiazdka(start, end, graph, route_type)
+    path1, cost,  = aGwiazdka(start, end, graph, route_type)
+    path2, cost,  = aGwiazdka(start, end, graph, "shortest")
+
 
     # path jest listą krawędzi grafu, więc musimy tylko poskładać z tego geometrię :))
     # Tworzymy z tego listę ponieważ tylko tak Leaflet tak to potrafi obsłużyć :/ It is how it is
-    route_coords = rebuild_route(start, path)
+    route_coords1 = rebuild_route(start, path1)
+    route_coords2 = rebuild_route(start, path2)
 
     if (node_start == node_end):
-        return flask.jsonify({'route': route_coords,
+        return flask.jsonify({'route': route_coords1,
+                              'route2': route_coords2,
                               'start_point': data['point1'],
                               'end_point': data['point2'],
                               'start_equal_end': True})
     else:
         #Zwracamy naszą drogę i punkty początek, koniec jako plik JSONowy
         return flask.jsonify({
-            'route': route_coords,
-            'start_point': route_coords[0],
-            'end_point': route_coords[-1],
+            'route': route_coords1,
+            'route2': route_coords2,
+            'start_point': route_coords1[0],
+            'end_point': route_coords1[-1],
             'start_equal_end': False})
 
 # Wyjście z procesu pythona --> wyłączenie serwera
