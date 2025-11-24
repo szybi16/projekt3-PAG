@@ -80,13 +80,13 @@ class GraphCreator:
         self.index[p] = n                      # dodawanie wierzchołka do index
         return self.index[p]
         
-    def newEdge(self, id, length, p1, p2, geom, directed = False):
+    def newEdge(self, id, speed, length, p1, p2, geom, directed = False):
         # tworzenie wierzchołków
         n1 = self.newNode(p1)
         n2 = self.newNode(p2)
 
         # tworzenie krawędzi
-        e = Edge(id, length, n1, n2, geom)          
+        e = Edge(id, speed,length, n1, n2, geom)
         self.graph.edges[id] = e
 
         # łączenie krawędzi i wierzchołków
