@@ -50,11 +50,18 @@ def calculate_route():
     # Tworzymy z tego listę ponieważ tylko tak Leaflet tak to potrafi obsłużyć :/ It is how it is
     route_coords = rebuild_route(start, path)
 
-    #Zwracamy naszą drogę i punkty początek, koniec jako plik JSONowy
-    return flask.jsonify({
-        'route': route_coords,
-        'start_point': route_coords[0],
-        'end_point': route_coords[-1]})
+    if (node_start == node_end):
+        return flask.jsonify({'route': route_coords,
+                              'start_point': data['point1'],
+                              'end_point': data['point2'],
+                              'start_equal_end': True})
+    else:
+        #Zwracamy naszą drogę i punkty początek, koniec jako plik JSONowy
+        return flask.jsonify({
+            'route': route_coords,
+            'start_point': route_coords[0],
+            'end_point': route_coords[-1],
+            'start_equal_end': False})
 
 # Wyjście z procesu pythona --> wyłączenie serwera
 @app.route("/shutdown", methods=["POST"])

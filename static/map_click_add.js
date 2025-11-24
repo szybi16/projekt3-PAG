@@ -115,6 +115,10 @@ document.addEventListener('DOMContentLoaded', (event) =>{
                 })
                     .then(response => response.json()) //Gdy odbierze odpowiedz konwertuje na typ JSON
                     .then(data => { //Obsługa odebranych danych
+                        if(data.start_equal_end === true){
+                            displayTemporaryMessage("Punkty są zbyt blisko siebie przez co punkt startowy i końcowy są w tym samym miejscu. Oddal od siebie punkty w celu wyznaczenia trasy", 3000)
+                            if (startMarker) {map.removeLayer(startMarker);}
+                            if (endMarker) {map.removeLayer(endMarker);}}
                         console.log("Trasa:", data.route);
 
                         // Dodanie drogi na mapie
@@ -137,8 +141,12 @@ document.addEventListener('DOMContentLoaded', (event) =>{
                         //Wyświetlenie użytkownikowi tego co poszło nie tak
                         if(error.message.includes('fetch')) {
                             displayTemporaryMessage("Połączenie z serwerem zostało utracone. Uruchom ponownie serwer.", 30000)
+                            if (startMarker) {map.removeLayer(startMarker);}
+                            if (endMarker) {map.removeLayer(endMarker);}
                         }else{
                             displayTemporaryMessage("Punkt początkowy lub końcowy znajduje się poza dostępnymi danymi drogowymi.", 3000)
+                            if (startMarker) {map.removeLayer(startMarker);}
+                            if (endMarker) {map.removeLayer(endMarker);}
                         }
                         points = [];
                     });
