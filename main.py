@@ -25,9 +25,10 @@ from Pegasus import *
 maleDane = "Drogi_Bydgoszcz_Male"
 testKierunek = "maleKierunek"
 duzeDane = "Drogi_Bydgoszcz"
+danePredkosc = "Drogi_Predkosc"
 
 # Domyślna warstwa
-default_layer = duzeDane
+default_layer = danePredkosc
 
 def get_args():
     parser = argparse.ArgumentParser(
