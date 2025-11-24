@@ -6,7 +6,7 @@
 import math
 import heapq
 
-from Graph import Node, Graph
+from Graph import Node, Graph, Edge
 
 #### Algorytm Dijkstra -- nie używany i nieaktualny
 def dijkstra(start: Node, end: Node):
@@ -64,6 +64,14 @@ def heurystyka(node1: Node, node2: Node, graph: Graph, route_type: str):
     elif route_type == "shortest":
         return distance_m
 
+def cost(e: Edge, route_type: str) :
+    if route_type == "fastest":
+        v = e.speed / 3.6
+        time = e.length / v
+        return time
+    elif route_type == "shortest":
+        return e.length
+
 def aGwiazdka(start: Node, end: Node, graph: Graph, route_type: str):
     S = set()                           # odwiedzone
     Q = [(0, start)]                    # kolejka priorytetowa
@@ -86,7 +94,7 @@ def aGwiazdka(start: Node, end: Node, graph: Graph, route_type: str):
             break
 
         for e, u in v.edges:            # sąsiad u, po drugiej stronie krawędzi e
-            route_cost = e.cost
+            route_cost = cost(e, route_type)
             if u in S:                  # zabezpieczenie przed wejściem na odwiedzony wierzchołek
                 continue
 

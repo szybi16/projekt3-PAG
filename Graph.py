@@ -23,9 +23,10 @@ class Node:
         return f"N({self.id},({self.x},{self.y}),[{eids}])"
         
 class Edge:
-    def __init__(self, edge_id, cost, start, end, true_geom):
+    def __init__(self, edge_id, speed, length, start, end, true_geom):
         self.id = edge_id           # id
-        self.cost = cost            # waga krawędzi   
+        self.speed = speed          # max prędkość  
+        self.length = length        # długość
         self.start = start          # z wierzchołka
         self.end = end              # do wierzchołka
         self.true_geom = true_geom  # lista współrzędnych (x, y) -- dodana przez zespół 
@@ -118,17 +119,12 @@ def create_graph(workspace, layer, tolerance = 0.5):
         if predkosc > max_speed:
             max_speed = predkosc
 
-        v = predkosc / 3.6
-        cost = length / v
-
-
         if kierunek == 0:
-            gc.newEdge(row.FID, length, p1, p2, directed = False, geom=points)
+            gc.newEdge(row.FID, predkosc, length, p1, p2, directed = False, geom=points)
         elif kierunek == 1:
-            gc.newEdge(row.FID, length, p1, p2, directed = True, geom=points)
+            gc.newEdge(row.FID, predkosc, length, p1, p2, directed = True, geom=points)
         elif kierunek == 2:
-            gc.newEdge(row.FID, length, p2, p1, directed = True, geom=points)
-
+            gc.newEdge(row.FID, predkosc, length, p2, p1, directed = True, geom=points)
 
     gc.graph.max_speed_kmh = max_speed if max_speed > 0 else 130.0
             
