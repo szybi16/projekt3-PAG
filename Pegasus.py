@@ -46,7 +46,7 @@ def calculate_route():
     end = graph.nodes[node_end]
 
     path1, cost,  = aGwiazdka(start, end, graph, route_type)
-    path2, cost,  = aGwiazdka(start, end, graph, "shortest")
+    path2, cost,  = aGwiazdka(start, end, graph, route_type, path1)
 
 
     # path jest listą krawędzi grafu, więc musimy tylko poskładać z tego geometrię :))

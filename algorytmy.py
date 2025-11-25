@@ -64,19 +64,32 @@ def heurystyka(node1: Node, node2: Node, graph: Graph, route_type: str):
     elif route_type == "shortest":
         return distance_m
 
-def cost(e: Edge, route_type: str) :
+def bellcurve(a, b, x):                 # to 2. miejsce 0 funkcji (koniec interesującej nas części), a b to maksymalna wartość x-1
+    m = (b * 16) / (a ** 4)             # współczynnik skalujący
+    f1 = (x ** 2) * ((x-a) ** 2)        # kształt funkcji
+    f = (f1 * m) + 1
+    return f
+
+
+def cost(e: Edge, route_type: str, prev_route) :
+    cost_multiplier = 1
+    if prev_route and e in prev_route:  # przeszliśmy po tej krawędzi poprzednim razem
+        n = len(prev_route)                 # liczba krawędzi w poprzedniej trasie
+        i = prev_route.index(e)             # numer krawędzi w poprzedniej trasie
+        max_cm = 0.5                        # maksymalne obciążenie dodatkowe trasy
+        cost_multiplier = bellcurve(n, max_cm, i)              
     if route_type == "fastest":
         v = e.speed / 3.6
         time = e.length / v
-        return time
+        return time * cost_multiplier
     elif route_type == "shortest":
-        return e.length
+        return e.length * cost_multiplier
 
-def aGwiazdka(start: Node, end: Node, graph: Graph, route_type: str):
+def aGwiazdka(start: Node, end: Node, graph: Graph, route_type: str, prev_route = None):
     S = set()                           # odwiedzone
     Q = [(0, start)]                    # kolejka priorytetowa
     h = {}                              # zbiór heurystyk
-    d = {}                              # zbiór odległości
+    d = {}                              # zbiór kosztów
     p = {}                              # zbiór poprzedników
     p_edge = {}                         # zbiór poprzednich krawędzi
     h[start] = heurystyka(start, end, graph, route_type)
@@ -94,7 +107,7 @@ def aGwiazdka(start: Node, end: Node, graph: Graph, route_type: str):
             break
 
         for e, u in v.edges:            # sąsiad u, po drugiej stronie krawędzi e
-            route_cost = cost(e, route_type)
+            route_cost = cost(e, route_type, prev_route)
             if u in S:                  # zabezpieczenie przed wejściem na odwiedzony wierzchołek
                 continue
 
@@ -118,15 +131,3 @@ def aGwiazdka(start: Node, end: Node, graph: Graph, route_type: str):
     if not end in d:                    # obsługa braku ścieżki  
         return None, math.inf
     return path, d[end]
-
-
-
-
-
-
-
-
-
-
-
-

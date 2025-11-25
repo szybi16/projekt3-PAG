@@ -28,7 +28,7 @@ duzeDane = "Drogi_Bydgoszcz"
 danePredkosc = "Drogi_Predkosc"
 
 # Domyślna warstwa
-default_layer = danePredkosc
+default_layer = duzeDane
 
 def get_args():
     parser = argparse.ArgumentParser(
