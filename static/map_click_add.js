@@ -75,6 +75,7 @@ document.addEventListener('DOMContentLoaded', (event) =>{
         var endLine = null;
         var startMarker = null;
         var endMarker = null;
+        var alternatywqaLabel = null;
 
         //Obsługa kliknięcia
         map.on('click', function(e) {
@@ -95,6 +96,7 @@ document.addEventListener('DOMContentLoaded', (event) =>{
                 if (alternatywqa) {map.removeLayer(alternatywqa);}
                 if (startLine) {map.removeLayer(startLine);}
                 if (endLine) {map.removeLayer(endLine);}
+                if (alternatywqaLabel) {map.removeLayer(alternatywqaLabel);}
                 //Dodanie markera początkowego
                 startMarker = L.marker(latlon, {icon: startIcon}).addTo(map);}
 
@@ -120,12 +122,29 @@ document.addEventListener('DOMContentLoaded', (event) =>{
                         if(data.start_equal_end === true){
                             displayTemporaryMessage("Punkty są zbyt blisko siebie przez co punkt startowy i końcowy są w tym samym miejscu. Oddal od siebie punkty w celu wyznaczenia trasy", 3000)
                             if (startMarker) {map.removeLayer(startMarker);}
-                            if (endMarker) {map.removeLayer(endMarker);}}
+                            if (endMarker) {map.removeLayer(endMarker);}
+                            if (alternatywqaLabel) {map.removeLayer(alternatywqaLabel);}}
                         console.log("Trasa:", data.route);
 
                         // Dodanie drogi na mapie
                         alternatywqa = L.polyline(data.route2, {color: 'gray'}).addTo(map);
                         currentRoute = L.polyline(data.route, {color: 'red'}).addTo(map);
+
+                        const route2_length = data.route2.length;
+                        const middle_index = Math.floor(route2_length / 2);
+                        const middle_point = data.route2[middle_index];
+                        var longer = data.cost2-data.cost1
+                        var text = null;
+                        if (longer >= 60) {text = (longer/60).toFixed(1) + " min. dłużej";}
+                        else {text = longer.toFixed(0) + " s. dłużej";}
+
+                        if (middle_point) {
+                            alternatywqaLabel = L.tooltip(middle_point, {
+                                content: text,
+                                permanent: true,
+                                direction: 'center'
+                            }).addTo(map);
+                        }
 
                         var startToStart = [points[0],data.start_point];
                         var endToEnd = [data.end_point, points[1]];
@@ -146,10 +165,12 @@ document.addEventListener('DOMContentLoaded', (event) =>{
                             displayTemporaryMessage("Połączenie z serwerem zostało utracone. Uruchom ponownie serwer.", 30000)
                             if (startMarker) {map.removeLayer(startMarker);}
                             if (endMarker) {map.removeLayer(endMarker);}
+                            if (alternatywqaLabel) {map.removeLayer(alternatywqaLabel);}
                         }else{
                             displayTemporaryMessage("Punkt początkowy lub końcowy znajduje się poza dostępnymi danymi drogowymi.", 3000)
                             if (startMarker) {map.removeLayer(startMarker);}
                             if (endMarker) {map.removeLayer(endMarker);}
+                            if (alternatywqaLabel) {map.removeLayer(alternatywqaLabel);}
                         }
                         points = [];
                     });
