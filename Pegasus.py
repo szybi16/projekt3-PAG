@@ -26,7 +26,8 @@ def index():
     script_tag = f'<script src="{js_url}"></script>'
     #Doadajemy go do naszego pliku html z mapki
     m.get_root().html.add_child(folium.Element(script_tag))
-    return m._repr_html_()
+    html = m.get_root().render()
+    return html
 
 #Funkcja służąca do obliczania trasy (Akceptuje tylko POST, czyli wysyłanie danych)
 @app.route('/calculate',methods=['POST'])
