@@ -64,7 +64,7 @@ def heurystyka(node1: Node, node2: Node, graph: Graph, route_type: str):
     elif route_type == "shortest":
         return distance_m
 
-def bellcurve(a, b, x):                 # to 2. miejsce 0 funkcji (koniec interesującej nas części), a b to maksymalna wartość x-1
+def bellcurve(a, b, x):                 # a to 2. miejsce 0 funkcji (koniec interesującej nas części), a b to maksymalna wartość x-1
     m = (b * 16) / (a ** 4)             # współczynnik skalujący
     f1 = (x ** 2) * ((x-a) ** 2)        # kształt funkcji
     f = (f1 * m) + 1
@@ -76,14 +76,14 @@ def cost(e: Edge, route_type: str, prev_route) :
     if prev_route and e in prev_route:  # przeszliśmy po tej krawędzi poprzednim razem
         n = len(prev_route)                 # liczba krawędzi w poprzedniej trasie
         i = prev_route.index(e)             # numer krawędzi w poprzedniej trasie
-        max_cm = 0.5                        # maksymalne obciążenie dodatkowe trasy
+        max_cm = 0.7                        # maksymalne obciążenie dodatkowe trasy
         cost_multiplier = bellcurve(n, max_cm, i)              
+    v = e.speed / 3.6
+    time = e.length / v
     if route_type == "fastest":
-        v = e.speed / 3.6
-        time = e.length / v
-        return time * cost_multiplier
+        return time * cost_multiplier, time
     elif route_type == "shortest":
-        return e.length * cost_multiplier
+        return e.length * cost_multiplier, time
 
 def aGwiazdka(start: Node, end: Node, graph: Graph, route_type: str, prev_route = None):
     S = set()                           # odwiedzone
@@ -91,9 +91,11 @@ def aGwiazdka(start: Node, end: Node, graph: Graph, route_type: str, prev_route 
     h = {}                              # zbiór heurystyk
     d = {}                              # zbiór kosztów
     p = {}                              # zbiór poprzedników
+    t = {}                              # zbiór czasów przejazdu przez krawędź
     p_edge = {}                         # zbiór poprzednich krawędzi
     h[start] = heurystyka(start, end, graph, route_type)
     d[start] = 0
+    t[start] = 0
     p[start] = None
     p_edge[start] = None
     while Q:
@@ -107,13 +109,14 @@ def aGwiazdka(start: Node, end: Node, graph: Graph, route_type: str, prev_route 
             break
 
         for e, u in v.edges:            # sąsiad u, po drugiej stronie krawędzi e
-            route_cost = cost(e, route_type, prev_route)
+            route_cost, time = cost(e, route_type, prev_route)
             if u in S:                  # zabezpieczenie przed wejściem na odwiedzony wierzchołek
                 continue
 
             new_d = d[v] + route_cost
             if not u in d or new_d < d[u]:
                 d[u] = new_d
+                t[u] = t[v] + time
                 p[u] = v
                 p_edge[u] = e
                 f_u = new_d + heurystyka(u, end, graph, route_type)
@@ -130,4 +133,4 @@ def aGwiazdka(start: Node, end: Node, graph: Graph, route_type: str, prev_route 
 
     if not end in d:                    # obsługa braku ścieżki  
         return None, math.inf
-    return path, d[end]
+    return path, t[end]

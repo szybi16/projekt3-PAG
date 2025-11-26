@@ -45,8 +45,8 @@ def calculate_route():
     start = graph.nodes[node_start]
     end = graph.nodes[node_end]
 
-    path1, cost1,  = aGwiazdka(start, end, graph, route_type)
-    path2, cost2,  = aGwiazdka(start, end, graph, route_type, path1)
+    path1, time1,  = aGwiazdka(start, end, graph, route_type)
+    path2, time2,  = aGwiazdka(start, end, graph, route_type, path1)
 
 
     # path jest listą krawędzi grafu, więc musimy tylko poskładać z tego geometrię :))
@@ -57,8 +57,8 @@ def calculate_route():
     if (node_start == node_end):
         return flask.jsonify({'route': route_coords1,
                               'route2': route_coords2,
-                              'cost1': cost1,
-                              'cost2': cost2,
+                              'cost1': time1,
+                              'cost2': time2,
                               'start_point': data['point1'],
                               'end_point': data['point2'],
                               'start_equal_end': True})
@@ -67,8 +67,8 @@ def calculate_route():
         return flask.jsonify({
             'route': route_coords1,
             'route2': route_coords2,
-            'cost1': cost1,
-            'cost2': cost2,
+            'cost1': time1,
+            'cost2': time2,
             'start_point': route_coords1[0],
             'end_point': route_coords1[-1],
             'start_equal_end': False})

@@ -127,17 +127,19 @@ document.addEventListener('DOMContentLoaded', (event) =>{
                         console.log("Trasa:", data.route);
 
                         // Dodanie drogi na mapie
-                        alternatywqa = L.polyline(data.route2, {color: 'gray'}).addTo(map);
-                        currentRoute = L.polyline(data.route, {color: 'red'}).addTo(map);
+                        alternatywqa = L.polyline(data.route2, {color: 'cyan'}).addTo(map);
+                        currentRoute = L.polyline(data.route, {color: 'blue'}).addTo(map);
 
                         const route2_length = data.route2.length;
                         const middle_index = Math.floor(route2_length / 2);
                         const middle_point = data.route2[middle_index];
                         var longer = data.cost2-data.cost1
                         var text = null;
-                        if (longer >= 60) {text = (longer/60).toFixed(1) + " min. dłużej";}
-                        else {text = longer.toFixed(0) + " s. dłużej";}
-
+                        if (longer >= 60) {text = (longer/60).toFixed(0) + " min";}
+                        else if (longer == 0) {text = "Brak trasy alternatywnej";}
+                        else {text = " <1 min";}
+                        if(longer < 0) {text += " krócej";}
+                        else if(longer > 0) {text += " dłużej";}
                         if (middle_point) {
                             alternatywqaLabel = L.tooltip(middle_point, {
                                 content: text,
