@@ -70,11 +70,10 @@ def bellcurve(a, b, x):                 # a to 2. miejsce 0 funkcji (koniec inte
     f = (f1 * m) + 1
     return f
 
-
 def cost(e: Edge, route_type: str, prev_route) :
     cost_multiplier = 1
     if prev_route and e in prev_route:  # przeszliśmy po tej krawędzi poprzednim razem
-        n = len(prev_route)                 # liczba krawędzi w poprzedniej trasie
+        n = len(prev_route) - 1               # liczba krawędzi w poprzedniej trasie
         i = prev_route.index(e)             # numer krawędzi w poprzedniej trasie
         max_cm = 0.7                        # maksymalne obciążenie dodatkowe trasy
         cost_multiplier = bellcurve(n, max_cm, i)              

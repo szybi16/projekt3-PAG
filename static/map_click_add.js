@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', (event) =>{
         const routeOptionsDiv = document.createElement('div');
         routeOptionsDiv.id = 'routeOptions';
 
-        routeOptionsDiv.style.cssText = "position: absolute; top: 10px; right: 10px; z-index: 1000; background: white; padding: 10px; border-radius: 5px; box-shadow: 0 0 5px rgba(0,0,0,0.3);";
+        routeOptionsDiv.style.cssText = "position: absolute; top: 60px; right: 10px; z-index: 1000; background: white; padding: 10px;";
 
         //Kod html dodający możliwości wyboru w polu
         routeOptionsDiv.innerHTML = `
@@ -35,6 +35,40 @@ document.addEventListener('DOMContentLoaded', (event) =>{
         }
         //gdy użytkownik zmieni zdanie co do trasy to zapisujemy to
         routeOptionsDiv.addEventListener('change', updateRouteType);
+
+        const alternatywqaOptionsDiv = document.createElement('div');
+        alternatywqaOptionsDiv.id = 'altOptions';
+
+        alternatywqaOptionsDiv.style.cssText = "position: absolute; top: 10px; right: 10px; z-index: 1000; background: white; padding: 10px;"
+        alternatywqaOptionsDiv.innerHTML = `
+        <input type="checkbox" id="alt" name="alternativeOpt" value="alt" >
+        <label for="alt">Trasa alternatywna</label><br>`
+
+        document.body.appendChild(alternatywqaOptionsDiv);
+
+        let selectedAlt = document.querySelector('input[name="alternativeOpt"]').checked;
+        function updateAlt(e){
+            if (e.target.name === 'alternativeOpt') {
+                selectedAlt = e.target.checked;
+                toggleAlternativeRoute();
+            }
+        }
+
+        function toggleAlternativeRoute() {
+            if (alternatywqa) {
+                if (selectedAlt) {
+                    map.addLayer(alternatywqa);
+                    if (alternatywqaLabel) {map.addLayer(alternatywqaLabel);}
+                    if (currentRoute) {currentRoute.bringToFront();}
+                } else {
+                    map.removeLayer(alternatywqa);
+                    if (alternatywqaLabel) {map.removeLayer(alternatywqaLabel);}
+                    if (currentRoute) {currentRoute.bringToFront();}
+                }
+            }
+        }
+
+        alternatywqaOptionsDiv.addEventListener('change',updateAlt);
 
         //Funkcja do wysyłania wiadomości błędowych
         function displayTemporaryMessage(message, mess_time) {
@@ -127,8 +161,8 @@ document.addEventListener('DOMContentLoaded', (event) =>{
                         console.log("Trasa:", data.route);
 
                         // Dodanie drogi na mapie
-                        alternatywqa = L.polyline(data.route2, {color: 'cyan'}).addTo(map);
-                        currentRoute = L.polyline(data.route, {color: 'blue'}).addTo(map);
+                        alternatywqa = L.polyline(data.route2, {color: 'blue'});
+                        currentRoute = L.polyline(data.route, {color: 'red'});
 
                         const route2_length = data.route2.length;
                         const middle_index = Math.floor(route2_length / 2);
@@ -136,7 +170,7 @@ document.addEventListener('DOMContentLoaded', (event) =>{
                         var longer = data.cost2-data.cost1
                         var text = null;
                         if (longer >= 60) {text = (longer/60).toFixed(0) + " min";}
-                        else if (longer == 0) {text = "Brak trasy alternatywnej";}
+                        else if (longer === 0) {text = "Brak trasy alternatywnej";}
                         else {text = " <1 min";}
                         if(longer < 0) {text += " krócej";}
                         else if(longer > 0) {text += " dłużej";}
@@ -145,8 +179,12 @@ document.addEventListener('DOMContentLoaded', (event) =>{
                                 content: text,
                                 permanent: true,
                                 direction: 'center'
-                            }).addTo(map);
+                            });
                         }
+
+                        currentRoute.addTo(map);
+                        toggleAlternativeRoute();
+                        currentRoute.bringToFront();
 
                         var startToStart = [points[0],data.start_point];
                         var endToEnd = [data.end_point, points[1]];
