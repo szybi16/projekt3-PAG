@@ -4,8 +4,6 @@
     Copyright: dr inż. Jacek Bernard Marciniak
     
     zmodyfikowany dla celów zadania
-
-    Prawdopodobnie nie będzie już tu dużo zmian.
 '''
 
 import arcpy
@@ -130,7 +128,7 @@ def create_graph(workspace, layer, tolerance = 0.5):
             
     return gc.graph
 
-#Zapisywanie do grafu
+#Zapisywanie do grafu --> ostatecznie nie użyte
 def save_to_graph(plik_wyjsciowy, graph):
     node = graph.nodes
     title = "Vertex_ID\tX\tY\tNeighbours_IDs\n"

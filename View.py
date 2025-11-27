@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 '''
-    Tu mają się znaleźć ostatecznie funkcje służące rysowaniu dróg na mapie, na razie są tu nasze dwie formy rysowania grafu.
+    Dawniej ten plik służył tworzeniu wizualizacji, stąd jego nazwa.
+    Wraz z rozwojem projektu stał się miejscem gdzie zebrane są funkcje geometryczne, znajdowania lokalizacji, długości i składania geometrii
 '''
 import numpy as np
 from pyproj import Transformer
@@ -11,7 +12,7 @@ from math import hypot
 def distance_to_point(start_node, end_node):
     x_start, y_start = start_node[0], start_node[1]
     x_end, y_end = end_node[0], end_node[1]
-    distance = np.sqrt((x_end - x_start) ** 2 + (y_end - y_start) ** 2)
+    distance = hypot(x_end - x_start, y_end - y_start)
     return distance
 
 #Obliczanie najbliższego wierzchołka do punktu
@@ -75,7 +76,7 @@ def rebuild_route(start, path):
     prev_x = start.x
     prev_y = start.y
 
-    #Przechodzenie przez każdą ścieżkę w celu pozyskania współrzędnych punktów i zamiany ich na układ Leafletowy
+    # Przechodzenie przez każdą ścieżkę w celu pozyskania współrzędnych punktów i zamiany ich na układ Leafletowy
     for edge in path:
         points = edge.true_geom 
 

@@ -2,9 +2,10 @@
 '''
     Plik główny istnieje po to żeby:
 
-    1. uruchamiać funkcje;
-    2. przechowywać stałe ustawiane z kodu;
-    3. łatwo testować nowe funkcje/biblioteki/rozwiązania.
+    1. Przyjmować argumenty;
+    2. Uruchamiać funkcje;
+    3. Przechowywać stałe ustawiane z kodu;
+    (4. łatwo testować nowe funkcje/biblioteki/rozwiązania.)
 
     Z tego powodu należy utrzymać ten plik stosunkowo krótki i prosty, a także ograniczać ilość tymczasowego kodu i funkcji przed commitem.
 

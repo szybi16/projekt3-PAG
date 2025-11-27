@@ -1,6 +1,6 @@
 # Programowanie Aplikacji Geoinformacyjnych -- Projekt 1: Nawigacja
 
-(Opis)
+Program służy do wyznaczania optymalnej trasy pomiędzy dwoma punktami wybranymi na mapie na wczytanych danych drogowych.
 
 ## Sposób uruchamiania
 
