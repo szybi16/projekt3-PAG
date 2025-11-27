@@ -114,9 +114,10 @@ def aGwiazdka(start: Node, end: Node, graph: Graph, route_type: str, prev_route 
             break
 
         for e, u in v.edges:            # sąsiad u, po drugiej stronie krawędzi e
-            route_cost, time = cost(e, route_type, prev_route)
             if u in S:                  # zabezpieczenie przed wejściem na odwiedzony wierzchołek
                 continue
+            
+            route_cost, time = cost(e, route_type, prev_route)
 
             new_d = d[v] + route_cost
             if not u in d or new_d < d[u]:
