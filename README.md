@@ -1,6 +1,8 @@
-# Programowanie Aplikacji Geoinformacyjnych -- Projekt 1: Nawigacja
+# Programowanie Aplikacji Geoinformacyjnych -- Projekt 3: Nawigacja
 
 Program służy do wyznaczania optymalnej trasy pomiędzy dwoma punktami wybranymi na mapie na wczytanych danych drogowych.
+
+Wersja z wykorzystaniem Neo4j
 
 ## Sposób uruchamiania
 
