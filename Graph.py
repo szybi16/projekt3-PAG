@@ -1,56 +1,21 @@
 # -*- coding: utf-8 -*-
 '''
-    Klasy obsługujące obiektowe podejście do grafu, obecnie jest to kod dostarczony przez prowadzącego 
-    Copyright: dr inż. Jacek Bernard Marciniak
-    
-    zmodyfikowany dla celów zadania
+    Mechanizmy tworzenia grafu w neo4j
 '''
 
-import arcpy
+from neo4j import GraphDatabase
+import geopandas as gpd
+from shapely.geometry import LineString
 import math
-
-class Node:
-    def __init__(self, node_id, x, y):
-        self.id = node_id   # id
-        self.x = x          # współrzędna x
-        self.y = y          # współrzędna y
-        self.edges = []     # krawędzie wychodzące z wierzchołka
-        
-    def __repr__(self):
-        eids = ",".join([str(e.id) for e, v in self.edges])
-        return f"N({self.id},({self.x},{self.y}),[{eids}])"
-        
-class Edge:
-    def __init__(self, edge_id, speed, length, start, end, true_geom):
-        self.id = edge_id           # id
-        self.speed = speed          # max prędkość  
-        self.length = length        # długość
-        self.start = start          # z wierzchołka
-        self.end = end              # do wierzchołka
-        self.true_geom = true_geom  # lista współrzędnych (x, y) -- dodana przez zespół 
-        
-    def __repr__(self):
-        sid = self.start.id if self.start is not None else "None"
-        eid = self.end.id if self.end is not None else "None"
-        return f"E({self.id},{sid},{eid})"
-    
-class Graph:
-    def __init__(self):
-        self.edges = {}  # edge_id -> Edge
-        self.nodes = {}  # node_id -> Node
-        
-    def __repr__(self):
-        ns = ",".join([str(n) for n in self.nodes.values()]) # all nodes
-        es = ",".join([str(e) for e in self.edges.values()]) # all edges
-        return f"Graph:\n  Nodes: [{ns}]\n  Edges: [{es}]"
 
 class GraphCreator:
     def __init__(self, tolerance = 0.5):
-        self.graph = Graph()        # nowy graf
         self.new_id = 0             # żeby przypisać współrzędne wierzchołkom
-        self.index = {}             # index: (x, y) -> Node
+        self.index = {}             # index: (x, y) -> wierzchołek
         self.tolerance = tolerance  # tolerancja dociągania wierzchołków -- dodana przez zespół
-        
+        self.nodes = []             # lista wierzchołków grafu do dodania
+        self.edges = []             # lista krawędzi grafu do dodania
+    
     def getNewId(self):
         self.new_id = self.new_id + 1
         return self.new_id        
@@ -65,18 +30,42 @@ class GraphCreator:
 
         return candidates
 
+    @staticmethod
+    def _batch_insert(tx, nodes, edges):
+        tx.run("""
+        UNWIND $nodes AS n
+        MERGE (node:Node {id: n.id})
+        SET node.x = n.x, node.y = n.y
+        """, nodes=nodes)
+
+        tx.run("""
+        UNWIND $edges AS e
+        MATCH (a:Node {id: e.from})
+        MATCH (b:Node {id: e.to})
+        CREATE (a)-[:ROAD {
+            id: e.id,
+            length: e.length,
+            speed: e.speed,
+            geom: e.geom
+        }]->(b)
+        """, edges=edges)
+
     def newNode(self, p):                      # funkcja tworzenia nowego wierzchołka w grafie -- znacznie zmieniona przez zespół na potrzebę "dociągania"
         candidates = self.nearbyNode(p)        # dociąganie "na 4 strony świata" 
         for key in candidates:
             if key in self.index:
                 return self.index[key]
 
-        p = candidates[0]
+        snap = candidates[0]
+        node_id = self.getNewId()
 
-        n = Node(self.getNewId(), p[0], p[1])  # tworzenie wierzchołka
-        self.graph.nodes[n.id] = n             # dodawanie wierzchołka do kolekcji
-        self.index[p] = n                      # dodawanie wierzchołka do index
-        return self.index[p]
+        self.nodes.append({ # tworzenie wierzchołka
+            "id": node_id,
+            "x": snap[0],
+            "y": snap[1]
+        })  
+        self.index[snap] = node_id                 # dodawanie wierzchołka do index
+        return node_id 
         
     def newEdge(self, id, speed, length, p1, p2, geom, directed = False):
         # tworzenie wierzchołków
@@ -84,66 +73,87 @@ class GraphCreator:
         n2 = self.newNode(p2)
 
         # tworzenie krawędzi
-        e = Edge(id, speed,length, n1, n2, geom)
-        self.graph.edges[id] = e
-
-        # łączenie krawędzi i wierzchołków
-        n1.edges.append((e, n2))
+        self.edges.append({
+            "from": n1,
+            "to": n2,
+            "id": id,
+            "length": length,
+            "speed": speed,
+            "geom": geom
+        })
         if not directed:                        # obsługa krawędzi jednokierunkowych -- dodana przez zespół
-            n2.edges.append((e, n1))
+            self.edges.append({
+                "from": n2,
+                "to": n1,
+                "id": id,
+                "length": length,
+                "speed": speed,
+                "geom": geom
+            })
             
-# funkcja tworząca graf -- zmodyfikowana przez zespół poprzez dodanie:
-#   -tolerancji (dociągania do pobliskich wierzchołków w celu eliminacji niespójności danych)
-#   -obsługi prędkości na trasach
-#   -zapisu rzeczywistej geometrii trasy
-def create_graph(workspace, layer, tolerance = 0.5):        
+# funkcja tworząca graf -- zbudowana de facto od zera na potrzebę rozwiązania bazodanowego
+def create_graph(driver, database, gdf, tolerance = 0.5):        
     gc = GraphCreator(tolerance)
-    max_speed = 0                                  
-    # wczytywanie danych
-    arcpy.env.workspace = workspace
-    cursor = arcpy.SearchCursor(layer)
-    for row in cursor:
-        length = round(row.Shape.length, 2)
-        p1 = (row.Shape.firstPoint.X, row.Shape.firstPoint.Y)
-        p2 = (row.Shape.lastPoint.X, row.Shape.lastPoint.Y)
+                            
+    for idx, row in gdf.iterrows():
+        geom: LineString = row.geometry
 
-        points = [(p.X, p.Y) for p in row.Shape.getPart(0)]
+        if geom is None or geom.is_empty:
+                continue
+        
+        length = round(geom.length, 2)
+        p1 = geom.coords[0]
+        p2 = geom.coords[-1]
 
-        kierunek = row.getValue("KIERUNEK")
-        predkosc = row.getValue("PREDKOSC")
-        if not predkosc or predkosc <= 0: #domyslna predkosc, gdyby ewentualnie brak danych
-            predkosc = 50.0
+        points = geom.wkt
 
-        if predkosc > max_speed:
-            max_speed = predkosc
+        direction = row.get("KIERUNEK", 0)
+        speed = row.get("PREDKOSC", 50.0)
+        if not speed or speed <= 0: #domyslna predkosc, gdyby ewentualnie brak danych
+            speed = 50.0
 
-        if kierunek == 0:
-            gc.newEdge(row.FID, predkosc, length, p1, p2, directed = False, geom=points)
-        elif kierunek == 1:
-            gc.newEdge(row.FID, predkosc, length, p1, p2, directed = True, geom=points)
-        elif kierunek == 2:
-            gc.newEdge(row.FID, predkosc, length, p2, p1, directed = True, geom=points)
+        if direction == 0:
+            gc.newEdge(idx, speed, length, p1, p2, directed = False, geom=points)
+        elif direction == 1:
+            gc.newEdge(idx, speed, length, p1, p2, directed = True, geom=points)
+        elif direction == 2:
+            gc.newEdge(idx, speed, length, p2, p1, directed = True, geom=points)
 
-    gc.graph.max_speed_kmh = max_speed if max_speed > 0 else 130.0
-            
-    return gc.graph
+    with driver.session(database=database) as session:
+        session.execute_write(
+            GraphCreator._batch_insert,
+            gc.nodes,
+            gc.edges
+        )
 
-#Zapisywanie do grafu --> ostatecznie nie użyte
-def save_to_graph(plik_wyjsciowy, graph):
-    node = graph.nodes
-    title = "Vertex_ID\tX\tY\tNeighbours_IDs\n"
+def ensure_constraints(driver, database):
+    cypher = """
+    CREATE CONSTRAINT node_id_unique IF NOT EXISTS
+    FOR (n:Node)
+    REQUIRE n.id IS UNIQUE
+    """
+    with driver.session(database=database) as session:
+        session.execute_write(lambda tx: tx.run(cypher))
 
-    with open(plik_wyjsciowy, 'w', encoding='utf-8') as file:
-        file.write(title)
+def recreate_db(driver, db):
+    with driver.session(database="system") as session:
+        session.execute_write(
+            lambda tx: tx.run(f"DROP DATABASE {db} IF EXISTS")
+        )
+        session.execute_write(
+            lambda tx: tx.run(f"CREATE DATABASE {db} WAIT")
+        )
 
-        for _, numN in node.items():
-            nodeEdges = numN.edges
-            neighbors = []
+driver = GraphDatabase.driver(
+    "bolt://127.0.0.1:7687",
+    auth=("neo4j", "12345678")
+)
 
-            for _, end_node in nodeEdges:
-                endN = end_node.id
-                neighbors.append(str(endN))
+db = "roadnetwork"
 
-            fullString = " ".join(neighbors)
-            line = f"{numN.id}\t{numN.x}\t{numN.y}\t{fullString}\n"
-            file.write(line)
+recreate_db(driver, db)
+
+ensure_constraints(driver, db)
+
+gdf = gpd.read_file("Dane\Drogi_Bydgoszcz_male.shp")
+create_graph(driver, db, gdf)
