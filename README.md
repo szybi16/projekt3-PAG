@@ -11,10 +11,18 @@ Można uruchomić go bez argumentów - przyjmą wartości domyślne.
 
 ### **Dostępne argumenty**
 
-`--layer`       :     Nazwa warstwy danych (w założeniu równa nazwie pliku shp bez rozszerzenia domyślnie: "Drogi_Bydgoszcz")
-`--port`        :     Port localhost, na którym uruchomiona zostanie mapa (domyślnie: 5000)
-`--user-path`   :     Ścieżka do folderu z danymi .shp (domyślnie: folder \"Dane\" w katalogu programu)
-`--tolerance`   :     Tolerancja dociągania krawędzi do bliskich wierzchołków grafu (w metrach, domyślnie: 0.5)
+| Argument         | Opis                                                                      | Domyślnie                           |
+| ---------------- | ------------------------------------------------------------------------- | ----------------------------------- |
+| `--layer`        | Nazwa warstwy danych (w założeniu równa nazwie pliku `.shp`)              | `"Drogi_Bydgoszcz"`                 |
+| `--port`         | Port localhost, na którym uruchomiona zostanie mapa                       | `4000`                              |
+| `--user-path`    | Ścieżka do folderu z danymi `.shp`                                        | folder `"Dane"` w katalogu programu |
+| `--tolerance`    | Tolerancja dociągania krawędzi do bliskich wierzchołków grafu (w metrach) | `0.5`                               |
+| `--instance-url` | Adres instancji Neo4j                                                     | `bolt://127.0.0.1:7687`             |
+| `--db-user`      | Użytkownik bazy danych Neo4j                                              | `neo4j`                             |
+| `--db-password`  | Hasło użytkownika bazy danych Neo4j                                       | `12345678`                          |
+| `--db-name`      | Nazwa bazy danych                                                         | `roadnetwork`                       |
+| `--rebuild`      | Flaga wymuszająca przebudowę grafu od nowa                                | brak (False)                        |
+
 
 ### **Uruchomienie minimalne**
 
@@ -25,5 +33,14 @@ python main.py
 ### **Przykładowe uruchomienie z wykorzystaniem wszystkich argumentów**
 
 ``` bash
-python main.py --layer drogi --port 5500 --user-path "C:/Users/Jan/Documents/MojeDane" --tolerance 0.3
+python main.py \
+  --layer Drogi_Krakow \
+  --port 5000 \
+  --user-path ./dane_shp \
+  --tolerance 0.8 \
+  --instance-url bolt://localhost:7687 \
+  --db-user neo4j \
+  --db-password secret \
+  --db-name roads \
+  --rebuild
 ```

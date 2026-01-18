@@ -3,97 +3,95 @@
     Dawniej ten plik służył tworzeniu wizualizacji, stąd jego nazwa.
     Wraz z rozwojem projektu stał się miejscem gdzie zebrane są funkcje geometryczne, znajdowania lokalizacji, długości i składania geometrii
 '''
-import numpy as np
 from pyproj import Transformer
 from Graph import *
 from math import hypot
-
-#Liczenie odległości pomiędzy wierzchołkami
-def distance_to_point(start_node, end_node):
-    x_start, y_start = start_node[0], start_node[1]
-    x_end, y_end = end_node[0], end_node[1]
-    distance = hypot(x_end - x_start, y_end - y_start)
-    return distance
+from shapely import wkt
 
 #Obliczanie najbliższego wierzchołka do punktu
-def calculate_nearest_point(x_coords, y_coords, g: Graph):
-    #Zmiana współrzędnych na układ 2180
-    transformer_to_meters = Transformer.from_crs("EPSG:4326", "EPSG:2180", always_xy=True)
-    x_coords, y_coords = transformer_to_meters.transform(x_coords, y_coords)
-    #Ustalenei odległości bounding boxa
-    radius = 200
-    nearest_node_id = None
-    min_x = x_coords - radius
-    max_x = x_coords + radius
-    min_y = y_coords - radius
-    max_y = y_coords + radius
-    #Początkowa najkrótsza odległość - nieskończoność
-    min_distance = float("inf")
-    #iterowanie przez punkty
-    for node_id, node in g.nodes.items():
-        x, y = node.x, node.y
-        #Sprawdzanie czy punkt znajduje się w bounding boxie
-        if min_x <= x <= max_x and min_y <= y <= max_y:
-            #obliczanie odległości dla punktu
-            current_distance = distance_to_point([x_coords, y_coords], [x, y])
-            #Jeśli odległość jest mniejsza niż dla wcześniejszych punktów to nadpisujemy
-            if current_distance < min_distance:
-                min_distance = current_distance
-                nearest_node_id = node_id
+def find_nearest_node(driver, database, lon, lat):
+    query = """
+    MATCH (n:Node)
+    RETURN n.id AS id,
+           point.distance(
+             n.location,
+             point({ longitude: $lon, latitude: $lat })
+           ) AS dist
+    ORDER BY dist
+    LIMIT 1
+    """
 
-    return nearest_node_id, min_distance
+    with driver.session(database=database) as session:
+        r = session.run(query, {"lon": lon, "lat": lat}).single()
+
+    return r["id"], r["dist"]
 
 #Obliczenie miejsca, w którym mamy dane
-def start_location(g: Graph):
-    transformer = Transformer.from_crs("EPSG:2180", "EPSG:4326", always_xy=True)
+def start_location(driver, database):
+    query = """
+    MATCH (n:Node)
+    RETURN
+        min(n.x) AS min_x,
+        max(n.x) AS max_x,
+        min(n.y) AS min_y,
+        max(n.y) AS max_y
+    """
 
-    # Transformacja współrzędnych na WGS 84
-    vertex_coords_4326 = {}
-    for node_id, node in g.nodes.items():
-        lon, lat = transformer.transform(node.x, node.y)
-        vertex_coords_4326[node_id] = (lon, lat)
+    with driver.session(database=database) as session:
+        r = session.run(query).single()
 
-    min_lat = min(v[1] for v in vertex_coords_4326.values())
-    max_lat = max(v[1] for v in vertex_coords_4326.values())
-    min_lon = min(v[0] for v in vertex_coords_4326.values())
-    max_lon = max(v[0] for v in vertex_coords_4326.values())
+    if r is None:
+        return None
 
-    # Obliczanie środka dla całego obszaru
-    lat = (min_lat + max_lat) / 2
-    lon = (min_lon + max_lon) / 2
+    # środek w EPSG:2180
+    center_x = (r["min_x"] + r["max_x"]) / 2
+    center_y = (r["min_y"] + r["max_y"]) / 2
 
-    place_coords_latlon = [lat, lon]
-    #Zwracamy wspórzędne punktu oraz słownik ze współrzędnymi punktów w układzie Mercatora
-    return place_coords_latlon, vertex_coords_4326
+    # transformacja do WGS84
+    transformer = Transformer.from_crs(
+        "EPSG:2180", "EPSG:4326", always_xy=True
+    )
+    lon, lat = transformer.transform(center_x, center_y)
 
-#Składanie z powrotem geometrii ścieżki
-def rebuild_route(start, path):
+    return [lat, lon]
+
+# Składanie z powrotem geometrii ścieżki
+def rebuild_route(driver, database, node_path):
     transformer = Transformer.from_crs("EPSG:2180", "EPSG:4326", always_xy=True)
 
     full_route = []
-    
-    # Potrzebujemy robić kontrolę kierunków geometrii, więc będziemy zapisywać współrzędne końca poprzedniego fragmentu.
-    prev_x = start.x
-    prev_y = start.y
 
-    # Przechodzenie przez każdą ścieżkę w celu pozyskania współrzędnych punktów i zamiany ich na układ Leafletowy
-    for edge in path:
-        points = edge.true_geom 
+    with driver.session(database=database) as session:
+        # Przechodzenie przez każdą ścieżkę w celu pozyskania współrzędnych punktów i zamiany ich na układ Leafletowy
+        for u, v in zip(node_path[:-1], node_path[1:]):
+            rec = session.run(
+                """
+                MATCH (n1:Node {id:$u})-[r:ROAD]->(n2:Node {id:$v})
+                RETURN 
+                  r.geom AS geom,
+                  n1.x AS x1, n1.y AS y1,
+                  n2.x AS x2, n2.y AS y2
+                LIMIT 1
+                """,
+                {"u": u, "v": v}
+            ).single()
 
-        # Kontrola kierunku geometrii i ew. odwracanie
-        first = points[0]
-        last = points[-1]
-        dist_first = hypot(first[0] - prev_x, first[1] - prev_y)
-        dist_last = hypot(last[0] - prev_x, last[1] - prev_y)
-        if dist_last < dist_first:
-            points = list(reversed(points))
+            if not rec:
+                continue
 
-        # Dołączamy współrzędne do całej ścieżki
-        for x, y in points:
-            lon, lat = transformer.transform(x, y)
+            points = list(wkt.loads(rec["geom"]).coords)
             
-            full_route.append([lat, lon])
+            # Kontrola kierunku geometrii i ew. odwracanie
+            dist_first = hypot(points[0][0] - rec["x1"], points[0][1] - rec["y1"])
+            dist_last   = hypot(points[-1][0] - rec["x1"], points[-1][1] - rec["y1"])
 
-        prev_x, prev_y = points[-1]
+            if dist_last < dist_first:
+                points.reverse()
+
+            # Dołączamy współrzędne do całej ścieżki
+            for x, y in points:
+                lon, lat = transformer.transform(x, y)
+
+                full_route.append([lat, lon])
 
     return full_route
