@@ -36,40 +36,6 @@ document.addEventListener('DOMContentLoaded', (event) =>{
         //gdy użytkownik zmieni zdanie co do trasy to zapisujemy to
         routeOptionsDiv.addEventListener('change', updateRouteType);
 
-        const alternatywqaOptionsDiv = document.createElement('div');
-        alternatywqaOptionsDiv.id = 'altOptions';
-
-        alternatywqaOptionsDiv.style.cssText = "position: absolute; top: 10px; right: 10px; z-index: 1000; background: white; padding: 10px;"
-        alternatywqaOptionsDiv.innerHTML = `
-        <input type="checkbox" id="alt" name="alternativeOpt" value="alt" >
-        <label for="alt">Trasa alternatywna</label><br>`
-
-        document.body.appendChild(alternatywqaOptionsDiv);
-
-        let selectedAlt = document.querySelector('input[name="alternativeOpt"]').checked;
-        function updateAlt(e){
-            if (e.target.name === 'alternativeOpt') {
-                selectedAlt = e.target.checked;
-                toggleAlternativeRoute();
-            }
-        }
-
-        function toggleAlternativeRoute() {
-            if (alternatywqa) {
-                if (selectedAlt) {
-                    map.addLayer(alternatywqa);
-                    if (alternatywqaLabel) {map.addLayer(alternatywqaLabel);}
-                    if (currentRoute) {currentRoute.bringToFront();}
-                } else {
-                    map.removeLayer(alternatywqa);
-                    if (alternatywqaLabel) {map.removeLayer(alternatywqaLabel);}
-                    if (currentRoute) {currentRoute.bringToFront();}
-                }
-            }
-        }
-
-        alternatywqaOptionsDiv.addEventListener('change',updateAlt);
-
         //Funkcja do wysyłania wiadomości błędowych
         function displayTemporaryMessage(message, mess_time) {
             const messageDiv = document.createElement('div');
@@ -104,12 +70,10 @@ document.addEventListener('DOMContentLoaded', (event) =>{
 
         var points = [];
         var currentRoute = null;
-        var alternatywqa = null;
         var startLine = null;
         var endLine = null;
         var startMarker = null;
         var endMarker = null;
-        var alternatywqaLabel = null;
 
         //Obsługa kliknięcia
         map.on('click', function(e) {
@@ -127,10 +91,8 @@ document.addEventListener('DOMContentLoaded', (event) =>{
                 if (startMarker) {map.removeLayer(startMarker);}
                 if (endMarker) {map.removeLayer(endMarker);}
                 if (currentRoute) {map.removeLayer(currentRoute);}
-                if (alternatywqa) {map.removeLayer(alternatywqa);}
                 if (startLine) {map.removeLayer(startLine);}
                 if (endLine) {map.removeLayer(endLine);}
-                if (alternatywqaLabel) {map.removeLayer(alternatywqaLabel);}
                 //Dodanie markera początkowego
                 startMarker = L.marker(latlon, {icon: startIcon}).addTo(map);}
 
@@ -157,7 +119,6 @@ document.addEventListener('DOMContentLoaded', (event) =>{
                             displayTemporaryMessage("Punkty są zbyt blisko siebie przez co punkt startowy i końcowy są w tym samym miejscu. Oddal od siebie punkty w celu wyznaczenia trasy", 3000)
                             if (startMarker) {map.removeLayer(startMarker);}
                             if (endMarker) {map.removeLayer(endMarker);}
-                            if (alternatywqaLabel) {map.removeLayer(alternatywqaLabel);}}
                         console.log("Trasa:", data.route);
 
                         // Dodanie drogi na mapie
@@ -174,16 +135,9 @@ document.addEventListener('DOMContentLoaded', (event) =>{
                         else {text = " <1 min";}
                         if(longer < 0) {text += " krócej";}
                         else if(longer > 0) {text += " dłużej";}
-                        if (middle_point) {
-                            alternatywqaLabel = L.tooltip(middle_point, {
-                                content: text,
-                                permanent: true,
-                                direction: 'center'
-                            });
-                        }
+
 
                         currentRoute.addTo(map);
-                        toggleAlternativeRoute();
                         currentRoute.bringToFront();
 
                         var startToStart = [points[0],data.start_point];
@@ -197,7 +151,7 @@ document.addEventListener('DOMContentLoaded', (event) =>{
                         endLine = L.polyline(endToEnd, polylineOptions).addTo(map);
                         //Czyszczenie
                         points = [];
-                    })
+                    }})
                     .catch(error => {
                         console.error('Błąd:', error);
                         //Wyświetlenie użytkownikowi tego co poszło nie tak
@@ -205,12 +159,10 @@ document.addEventListener('DOMContentLoaded', (event) =>{
                             displayTemporaryMessage("Połączenie z serwerem zostało utracone. Uruchom ponownie serwer.", 30000)
                             if (startMarker) {map.removeLayer(startMarker);}
                             if (endMarker) {map.removeLayer(endMarker);}
-                            if (alternatywqaLabel) {map.removeLayer(alternatywqaLabel);}
                         }else{
                             displayTemporaryMessage("Punkt początkowy lub końcowy znajduje się poza dostępnymi danymi drogowymi.", 3000)
                             if (startMarker) {map.removeLayer(startMarker);}
                             if (endMarker) {map.removeLayer(endMarker);}
-                            if (alternatywqaLabel) {map.removeLayer(alternatywqaLabel);}
                         }
                         points = [];
                     });
