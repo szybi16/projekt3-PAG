@@ -1,18 +1,16 @@
-//Czekamy aż załaduje się strona, jeśli się załaduje uruchamiamy to co jest w środku
+//Czekamy aż załaduje się strona
 document.addEventListener('DOMContentLoaded', (event) =>{
-    //znalezienie obiektu mapy w Leaflet (folium wykorzystuje Leaflet)
+    //znalezienie obiektu mapy w Leaflet
     var map = Object.values(window).find(obj => obj instanceof L.Map);
 
     if (map) {
-        console.log("Mapka otwarta")
+        console.log("Mapka otwarta");
 
         //Tworzenie kontenera na pole do wyboru typu trasy
         const routeOptionsDiv = document.createElement('div');
         routeOptionsDiv.id = 'routeOptions';
+        routeOptionsDiv.style.cssText = "position: absolute; top: 10px; right: 10px; z-index: 1000; background: white; padding: 10px; border: 1px solid #ccc; border-radius: 5px;"; // Dodałem ramkę dla estetyki
 
-        routeOptionsDiv.style.cssText = "position: absolute; top: 60px; right: 10px; z-index: 1000; background: white; padding: 10px;";
-
-        //Kod html dodający możliwości wyboru w polu
         routeOptionsDiv.innerHTML = `
             <label>Wybierz trasę:</label><br>
             <input type="radio" id="fastest" name="routeType" value="fastest" checked>
@@ -22,18 +20,18 @@ document.addEventListener('DOMContentLoaded', (event) =>{
             <label for="shortest">Najkrótsza</label>
         `;
 
-        //Wstawienie kontenerka z polem do pliku html
+        // --- POPRAWKA 1: Dodanie elementu do strony ---
         document.body.appendChild(routeOptionsDiv);
 
         //wyszukiwanie i pobieranie wartości dla zaznaczonego obiektu
-        let selectedRouteType = document.querySelector('input[name="routeType"]:checked').value;
+        // Teraz to zadziała, bo element już istnieje w DOM
+        let selectedRouteType = document.querySelector('input[name="routeType"]').value;
 
         function updateRouteType(e) {
              if (e.target.name === 'routeType' && e.target.checked) {
                 selectedRouteType = e.target.value;
              }
         }
-        //gdy użytkownik zmieni zdanie co do trasy to zapisujemy to
         routeOptionsDiv.addEventListener('change', updateRouteType);
 
         //Funkcja do wysyłania wiadomości błędowych
@@ -42,7 +40,6 @@ document.addEventListener('DOMContentLoaded', (event) =>{
             messageDiv.id = 'tempMessage';
             messageDiv.textContent = message;
 
-            //Styl komunikatu
             messageDiv.style.cssText = `
                 position: absolute; 
                 top: 50%; 
@@ -60,121 +57,109 @@ document.addEventListener('DOMContentLoaded', (event) =>{
 
             document.body.appendChild(messageDiv);
 
-            // Usuwanie komunikatu
             setTimeout(() => {
-                if (document.getElementById('tempMessage')) {
-                    document.body.removeChild(messageDiv);
+                const existingMsg = document.getElementById('tempMessage');
+                if (existingMsg) {
+                    document.body.removeChild(existingMsg);
                 }
             }, mess_time);
         }
 
         var points = [];
         var currentRoute = null;
+        var alternatywqa = null;
         var startLine = null;
         var endLine = null;
         var startMarker = null;
         var endMarker = null;
+        var alternatywqaLabel = null;
 
         //Obsługa kliknięcia
         map.on('click', function(e) {
-            //Utworzenie punktu na podstawie funkcji Leafletowych
             var latlon = [e.latlng.lat, e.latlng.lng];
             points.push(latlon);
 
-            //utworzenie ikony markera dla początka i końca drogi
             var startIcon = L.AwesomeMarkers.icon({icon: 'flag', prefix: 'fa', markerColor: 'blue'});
             var endIcon = L.AwesomeMarkers.icon({icon: 'flag', prefix: 'fa', markerColor: 'black'});
 
-            //Utworzenie markera startu
             if (points.length === 1){
-                //Usunięcie pozostałości (wcześniejszych tras)
+                //Czyszczenie mapy przed nową trasą
                 if (startMarker) {map.removeLayer(startMarker);}
                 if (endMarker) {map.removeLayer(endMarker);}
                 if (currentRoute) {map.removeLayer(currentRoute);}
+                if (alternatywqa) {map.removeLayer(alternatywqa);}
                 if (startLine) {map.removeLayer(startLine);}
                 if (endLine) {map.removeLayer(endLine);}
-                //Dodanie markera początkowego
-                startMarker = L.marker(latlon, {icon: startIcon}).addTo(map);}
+                if (alternatywqaLabel) {map.removeLayer(alternatywqaLabel);}
+
+                startMarker = L.marker(latlon, {icon: startIcon}).addTo(map);
+            }
 
             console.log("Punkcik: ", latlon);
+
             if (points.length === 2) {
-                console.log("2 punkty")
-                //Utworzenie markera końca
+                console.log("2 punkty - wysyłanie");
                 endMarker = L.marker(latlon, {icon: endIcon}).addTo(map);
 
-                //Gdy mamy 2 punkty wysyłamy dane do funkcji liczącej trasę
                 fetch('/calculate', {
-                    method: 'POST', //typ POST - wysyłanie danych
-                    headers: {'Content-Type': 'application/json'}, // określenie typu JSON
-                    //Zmiana obiektu JSON na tekst
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
                         point1: points[0],
                         point2: points[1],
                         route_type: selectedRouteType
                     })
                 })
-                    .then(response => response.json()) //Gdy odbierze odpowiedz konwertuje na typ JSON
-                    .then(data => { //Obsługa odebranych danych
-                        if(data.start_equal_end === true){
-                            displayTemporaryMessage("Punkty są zbyt blisko siebie przez co punkt startowy i końcowy są w tym samym miejscu. Oddal od siebie punkty w celu wyznaczenia trasy", 3000)
-                            if (startMarker) {map.removeLayer(startMarker);}
-                            if (endMarker) {map.removeLayer(endMarker);}
+                .then(response => response.json())
+                .then(data => {
+                    // --- POPRAWKA 2: Rozdzielenie obsługi błędu od sukcesu ---
+                    if(data.start_equal_end === true){
+                        displayTemporaryMessage("Punkty są zbyt blisko siebie. Oddal od siebie punkty.", 3000);
+                        if (startMarker) {map.removeLayer(startMarker);}
+                        if (endMarker) {map.removeLayer(endMarker);}
+                        points = []; // Reset punktów przy błędzie
+                    } else {
+                        // Sytuacja poprawna - rysujemy trasę
                         console.log("Trasa:", data.route);
 
-                        // Dodanie drogi na mapie
-                        alternatywqa = L.polyline(data.route2, {color: 'blue'});
-                        currentRoute = L.polyline(data.route, {color: 'red'});
-
-                        const route2_length = data.route2.length;
-                        const middle_index = Math.floor(route2_length / 2);
-                        const middle_point = data.route2[middle_index];
-                        var longer = data.cost2-data.cost1
-                        var text = null;
-                        if (longer >= 60) {text = (longer/60).toFixed(0) + " min";}
-                        else if (longer === 0) {text = "Brak trasy alternatywnej";}
-                        else {text = " <1 min";}
-                        if(longer < 0) {text += " krócej";}
-                        else if(longer > 0) {text += " dłużej";}
-
-
-                        currentRoute.addTo(map);
-                        currentRoute.bringToFront();
-
-                        var startToStart = [points[0],data.start_point];
-                        var endToEnd = [data.end_point, points[1]];
-
-                        var polylineOptions = {
-                            color: 'grey',
-                            dashArray: '10, 10'};
-                        //Linie pomiędzy markerem a wierzchołkiem
-                        startLine = L.polyline(startToStart, polylineOptions).addTo(map);
-                        endLine = L.polyline(endToEnd, polylineOptions).addTo(map);
-                        //Czyszczenie
-                        points = [];
-                    }})
-                    .catch(error => {
-                        console.error('Błąd:', error);
-                        //Wyświetlenie użytkownikowi tego co poszło nie tak
-                        if(error.message.includes('fetch')) {
-                            displayTemporaryMessage("Połączenie z serwerem zostało utracone. Uruchom ponownie serwer.", 30000)
-                            if (startMarker) {map.removeLayer(startMarker);}
-                            if (endMarker) {map.removeLayer(endMarker);}
-                        }else{
-                            displayTemporaryMessage("Punkt początkowy lub końcowy znajduje się poza dostępnymi danymi drogowymi.", 3000)
-                            if (startMarker) {map.removeLayer(startMarker);}
-                            if (endMarker) {map.removeLayer(endMarker);}
+                        if (data.route) {
+                             currentRoute = L.polyline(data.route, {color: 'red'}).addTo(map);
                         }
+
+                        // Linie łączące punkty z trasą (jeśli API zwraca te dane)
+                        if (data.start_point && data.end_point) {
+                            var startToStart = [points[0], data.start_point];
+                            var endToEnd = [data.end_point, points[1]];
+
+                            var polylineOptions = {
+                                color: 'grey',
+                                dashArray: '10, 10'
+                            };
+                            startLine = L.polyline(startToStart, polylineOptions).addTo(map);
+                            endLine = L.polyline(endToEnd, polylineOptions).addTo(map);
+                        }
+
+                        // Czyścimy tablicę punktów, aby można było zacząć nową trasę od 1 kliknięcia
                         points = [];
-                    });
+                    }
+                })
+                .catch(error => {
+                    console.error('Błąd:', error);
+                    if(error.message && error.message.includes('fetch')) {
+                         displayTemporaryMessage("Błąd połączenia z serwerem.", 5000);
+                    } else {
+                         displayTemporaryMessage("Błąd wyznaczania trasy.", 3000);
+                    }
+                    // Reset w razie błędu
+                    points = [];
+                });
             }
         });
     } else {
-        console.error("Użytkownik się nie poddaje. NIE CHCE ODDAĆ DANYCH");
-        displayTemporaryMessage("Mapa nie chce się załadować.", 60000)
+        console.error("Nie znaleziono mapy");
     }
 });
 
-// Wyłapywanie zamknięcia okna z mapą i nadanie komunikatu
 window.addEventListener("beforeunload", function() {
     navigator.sendBeacon("/shutdown"); 
 });
