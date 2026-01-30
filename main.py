@@ -38,7 +38,7 @@ def get_args():
     )
 
     parser.add_argument(
-        "--road_data",
+        "--road-data",
         type=str,
         default=default_road_data,
         help=f"Nazwa zbioru danych drogowych (domyślnie: {default_road_data})"
