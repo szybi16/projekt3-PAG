@@ -39,7 +39,7 @@ def aGwiazdka(driver, database, start_id, end_id, route_type="fastest"):
 def routes(driver, database, start_id, end_id, route_type="fastest"):
     """
     Zwraca zawsze dwie ścieżki (path1, time1, path2, time2).
-    Jeśli dostępna jest tylko jedna – zwraca ją podwójnie.
+    Jeśli dostępna jest tylko jedna - zwraca ją podwójnie.
     """
 
     weight = "time" if route_type == "fastest" else "length"
@@ -96,7 +96,7 @@ def routes(driver, database, start_id, end_id, route_type="fastest"):
 
             paths.append((edges, total_cost))
 
-        # Jeśli jest tylko jedna ścieżka → duplikujemy
+        # Jeśli jest tylko jedna ścieżka -> duplikujemy
         if len(paths) == 1:
             paths.append(paths[0])
 
