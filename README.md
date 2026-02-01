@@ -13,7 +13,7 @@ Można uruchomić go bez argumentów - przyjmą wartości domyślne.
 
 | Argument         | Opis                                                                      | Domyślnie                           |
 | ---------------- | ------------------------------------------------------------------------- | ----------------------------------- |
-| `--layer`        | Nazwa warstwy danych (w założeniu równa nazwie pliku `.shp`)              | `"Drogi_Bydgoszcz"`                 |
+| `--road-data`        | Nazwa warstwy danych (w założeniu równa nazwie pliku `.shp`)              | `"Drogi_Bydgoszcz"`                 |
 | `--port`         | Port localhost, na którym uruchomiona zostanie mapa                       | `4000`                              |
 | `--user-path`    | Ścieżka do folderu z danymi `.shp`                                        | folder `"Dane"` w katalogu programu |
 | `--tolerance`    | Tolerancja dociągania krawędzi do bliskich wierzchołków grafu (w metrach) | `0.5`                               |
